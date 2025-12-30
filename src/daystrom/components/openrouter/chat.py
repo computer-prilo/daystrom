@@ -5,10 +5,10 @@ from openrouter.components import AssistantMessage
 from openrouter.components import Message as OpenRouterMessage  # , ToolResponseMessage
 from openrouter.components import SystemMessage, UserMessage
 
-from daystrom import Context
+from daystrom.components import LLM, Context, LLMResponse
 
 
-class OpenRouterChat:
+class OpenRouterChat(LLM):
     def __init__(
         self,
         model: str,
@@ -21,14 +21,15 @@ class OpenRouterChat:
         else:
             self.context = Context()
         self.model = model
-        super().__init__()
+        super().__init__(context=context)
 
-    def invoke(self, prompt):
-        return "".join(self.invoke_stream(prompt))
+    def invoke(self, prompt) -> LLMResponse:
+        response = LLMResponse(text="".join(self.invoke_stream(prompt)), tool_calls=[])
+        return response
 
     def invoke_stream(self, prompt):
         self.context.add_message("user", prompt)
-        messages = self.get_prompt_context()
+        messages = self._get_prompt_context()
         res = self.client.chat.send(messages=messages, model=self.model, stream=True)
 
         response_content = ""
@@ -39,12 +40,12 @@ class OpenRouterChat:
                 yield content_chunk
         self.context.add_message("assistant", response_content)
 
-    async def ainvoke(self, prompt):
+    async def ainvoke(self, prompt) -> str:
         return "".join([chunk async for chunk in self.ainvoke_stream(prompt)])
 
     async def ainvoke_stream(self, prompt):
         self.context.add_message("user", prompt)
-        messages = self.get_prompt_context()
+        messages = self._get_prompt_context()
         res = await self.client.chat.send_async(
             messages=messages, model=self.model, stream=True
         )
@@ -57,7 +58,7 @@ class OpenRouterChat:
                 yield content_chunk
         self.context.add_message("assistant", response_content)
 
-    def get_prompt_context(self) -> list[OpenRouterMessage]:
+    def _get_prompt_context(self) -> list[OpenRouterMessage]:
         """
         Returns the messages in the context formatted for OpenRouter API
         """

@@ -1,21 +1,21 @@
 import pytest
 
-from daystrom.context import Context, Message
+from daystrom.components import Context, Message
 
 
 class TestMessage:
     def test_init(self):
-        msg = Message(text="Hello", role="user")
+        msg = Message(role="user", text="Hello")
         assert msg.text == "Hello"
         assert msg.role == "user"
 
     def test_str(self):
-        msg = Message(text="Hello", role="user")
+        msg = Message(role="user", text="Hello")
         assert str(msg) == "user: Hello"
 
     def test_str_with_different_roles(self):
-        assert str(Message(text="Hi", role="assistant")) == "assistant: Hi"
-        assert str(Message(text="Be helpful", role="system")) == "system: Be helpful"
+        assert str(Message(role="assistant", text="Hi")) == "assistant: Hi"
+        assert str(Message(role="system", text="Be helpful")) == "system: Be helpful"
 
 
 class TestContext:

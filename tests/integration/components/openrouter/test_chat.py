@@ -1,5 +1,6 @@
 import pytest
 
+from daystrom.components import LLMResponse
 from daystrom.components.openrouter import OpenRouterChat
 
 
@@ -21,8 +22,8 @@ def test_invoke_stream(client, message):
 
 def test_invoke(client, message):
     res = client.invoke(message)
-    assert isinstance(res, str)
-    assert res != ""
+    assert isinstance(res, LLMResponse)
+    assert res.text != ""
 
 
 @pytest.mark.asyncio
