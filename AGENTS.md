@@ -20,7 +20,7 @@
 - Python 3.12, managed with `uv`
 
 ## Architecture Notes
-- **Context Management**: Context is a shared class used by all LLM driven components. Each individual component knows how to manipulate it's own context to make it's own calls. This allows context to be exposed and optionally passed between components to maintain a chain of thought, e.g.:
+- **Context Management**: Context is a shared class used by all LLM driven components. Each individual component knows how to manipulate its own context to make its own calls. This allows context to be exposed and optionally passed between components to maintain a chain of thought, e.g.:
 ```python
 client=OpenRouterChat(...)
 Instructor(context=client.context, ...)

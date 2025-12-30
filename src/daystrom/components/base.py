@@ -144,7 +144,7 @@ def tool(func):
 
         description = ""
         if len(docstring.params) >= idx + 1:
-            description = (docstring.params[idx].description,)
+            description = docstring.params[idx].description
 
         func_params[name] = {
             "type": param.annotation,
@@ -191,7 +191,6 @@ class Agent(Component[AgentResponse]):
         res = self.llm.invoke(prompt)
         while loop < self.max_loops:
             loop += 1
-            print(f"Agent loop {loop}")
 
             # if no tools were called, the agent loop is done
             if not res.tool_calls:
@@ -203,9 +202,7 @@ class Agent(Component[AgentResponse]):
                     self.llm.context.add_message(
                         "tool", tool_res, tool_call.tool_call_id
                     )
-                except:
-                    print("Tool call failed! LLM Response:")
-                    print(tool_call)
+                except Exception:
                     raise
 
             res = self.llm.invoke()

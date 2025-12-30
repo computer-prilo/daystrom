@@ -101,11 +101,20 @@ class OpenAIChatCompletions(LLM):
                                 "id": tool_call.tool_call_id,
                             }
                         )
-                    fmt_messages.append(
-                        ChatCompletionAssistantMessageParam(
-                            role="assistant", content=msg.text, tool_calls=tool_calls
+                    if tool_calls:
+                        fmt_messages.append(
+                            ChatCompletionAssistantMessageParam(
+                                role="assistant",
+                                content=msg.text,
+                                tool_calls=tool_calls,
+                            )
                         )
-                    )
+                    else:
+                        fmt_messages.append(
+                            ChatCompletionAssistantMessageParam(
+                                role="assistant", content=msg.text
+                            )
+                        )
                 case "system":
                     fmt_messages.append(
                         ChatCompletionDeveloperMessageParam(
