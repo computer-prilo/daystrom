@@ -78,7 +78,7 @@ class OpenAIChatCompletions(LLM):
 
     def _get_prompt_context(self) -> list[ChatCompletionMessageParam]:
         """
-        Returns the messages in the context formatted for OpenRouter API
+        Returns the messages in the context formatted for OpenAI API
         """
         fmt_messages = []
         for msg in self.context.messages:

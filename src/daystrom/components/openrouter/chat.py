@@ -21,7 +21,7 @@ class OpenRouterChat(LLM):
         else:
             self.context = Context()
         self.model = model
-        super().__init__()
+        super().__init__(context=context)
 
     def invoke(self, prompt) -> LLMResponse:
         response = LLMResponse(text="".join(self.invoke_stream(prompt)), tool_calls=[])

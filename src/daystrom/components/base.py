@@ -1,3 +1,4 @@
+import functools
 import inspect
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -125,7 +126,7 @@ class LLM(Component[LLMResponse]):
 DEFAULT_TOOLS = {}
 
 
-# this is a decorator to be @tool above each tool fuction
+# this is a decorator to be @tool above each tool function
 def tool(func):
     docstring = parse(func.__doc__ or "")
     inspect_params = inspect.signature(func).parameters
@@ -166,6 +167,7 @@ def tool(func):
 
     DEFAULT_TOOLS[new_tool.name] = new_tool
 
+    @functools.wraps(func)
     def wrapper(*args, **kwargs):
         return func(*args, **kwargs)
 
@@ -179,11 +181,11 @@ def fake_tool(a: str = "a", b: str = "b") -> str:
 
 class Agent(Component[AgentResponse]):
     def __init__(
-        self, llm: LLM, tools: dict[str, Tool] = DEFAULT_TOOLS, max_loops: int = 30
+        self, llm: LLM, tools: dict[str, Tool] | None = None, max_loops: int = 30
     ):
         self.llm = llm
         self.max_loops = max_loops
-        self.tools = tools
+        self.tools = tools or DEFAULT_TOOLS
         self.llm.tools = self.tools
 
     def invoke(self, prompt, *args, **kwargs) -> AgentResponse:
