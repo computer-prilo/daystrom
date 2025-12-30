@@ -2,8 +2,7 @@ import os
 
 import pytest
 
-from daystrom.components import AgentResponse, Context, LLMResponse, Tool
-from daystrom.components.base import Agent
+from daystrom.components import Agent, AgentResponse, Context, Tool
 from daystrom.components.openai import OpenAIChatCompletions
 
 
