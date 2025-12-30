@@ -79,7 +79,7 @@ class Context:
         role: str,
         text: str,
         tool_call_id: str = "",
-        tool_calls: list[ToolCall] = [],
+        tool_calls: list[ToolCall] | None = None,
     ):
         self.messages.append(
             Message(
@@ -107,13 +107,15 @@ class LLM(Component[LLMResponse]):
     context: Context
     tools: dict[str, Tool]
 
-    def __init__(self, context: Context | None = None, tools: dict[str, Tool] = {}):
+    def __init__(
+        self, context: Context | None = None, tools: dict[str, Tool] | None = None
+    ):
         if context:
             self.context = context
         else:
             self.context = Context()
 
-        self.tools = tools
+        self.tools = tools or {}
 
     @abstractmethod
     def invoke(self, *args, **kwargs) -> LLMResponse:

@@ -26,7 +26,7 @@ class OpenAIChatCompletions(LLM):
         api_key: str | None = None,
         url: str | None = None,
         context: Context | None = None,
-        tools: dict[str, Tool] = {},
+        tools: dict[str, Tool] | None = None,
     ):
         self.model = model
         self.client = OpenAI(
@@ -35,7 +35,7 @@ class OpenAIChatCompletions(LLM):
             or os.getenv("OPENROUTER_API_KEY")
             or api_key,
         )
-        super().__init__(context=context, tools=tools)
+        super().__init__(context=context, tools=tools or {})
 
     def invoke(self, prompt: str | None = None) -> LLMResponse:
         if prompt:
