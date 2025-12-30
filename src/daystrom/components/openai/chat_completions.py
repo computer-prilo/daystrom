@@ -73,7 +73,6 @@ class OpenAIChatCompletions(LLM):
         self.context.add_message(
             role="assistant", text=completion_text, tool_calls=tool_calls
         )
-        # breakpoint()
         response = LLMResponse(text=completion_text, tool_calls=tool_calls)
         return response
 
