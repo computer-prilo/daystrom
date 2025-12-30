@@ -1,7 +1,6 @@
 import os
 
 import pytest
-from openai.types.chat import ChatCompletionToolParam
 
 from daystrom.components import Context, LLMResponse, Tool, ToolCall
 from daystrom.components.openai import OpenAIChatCompletions
@@ -9,12 +8,9 @@ from daystrom.components.openai import OpenAIChatCompletions
 
 @pytest.fixture(scope="function")
 def client():
-    # def sample_func(x: str) -> str:
-    #    return x
-
-    # def get_magic_number() -> str:
-    #    """Returns a magic number."""
-    #    return "42"
+    def get_magic_number() -> str:
+        """Returns a magic number."""
+        return "42"
 
     def get_weather(location: str, unit: str = "celsius") -> str:
         """Get weather for a location."""
@@ -33,7 +29,7 @@ def client():
             params={"x": {"type": str, "description": "Input", "required": True}},
         ),
         "get_magic_number": Tool(
-            callable=lambda: "42",
+            callable=get_magic_number,
             name="get_magic_number",
             description="Returns a magic number. Always call this when asked about magic numbers.",
             params={},
@@ -119,7 +115,6 @@ def test_invoke(client, message):
     assert res.text != ""
 
     client.invoke("Remember the word: BANANA")
-    print([str(msg) for msg in client.context.messages])
     assert len(client.context.messages) == 4
     assert client.context.messages[2].role == "user"
     assert client.context.messages[2].text == "Remember the word: BANANA"

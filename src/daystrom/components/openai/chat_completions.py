@@ -3,7 +3,7 @@ import os
 from typing import get_origin
 
 from openai import OpenAI
-from openai.types.chat import (  # ChatCompletionSystemMessageParam,; ChatCompletionMessageCustomToolCall,
+from openai.types.chat import (
     ChatCompletionAssistantMessageParam,
     ChatCompletionDeveloperMessageParam,
     ChatCompletionMessageFunctionToolCall,

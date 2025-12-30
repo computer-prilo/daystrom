@@ -21,13 +21,13 @@ class Tool:
         name: str = "",
         display_name: str = "",
         description: str = "",
-        params: dict = {},
+        params: dict | None = None,
     ):
         self.callable = callable
         self.name = name or callable.__name__
         self.display_name = display_name or self.name.replace("_", " ").title()
         self.description = description or callable.__doc__ or ""
-        self.params = params
+        self.params = params or {}
 
     def __str__(self):
         return f"Tool(name={self.name}, description={self.description}, params={self.params})"
@@ -50,12 +50,12 @@ class Message:
         role: str,
         text: str,
         tool_call_id: str = "",
-        tool_calls: list[ToolCall] = [],
+        tool_calls: list[ToolCall] | None = None,
     ):
         self.role = role
         self.text = text
         self.tool_call_id = tool_call_id
-        self.tool_calls: list[ToolCall] = tool_calls
+        self.tool_calls: list[ToolCall] = tool_calls or []
 
     def __str__(self):
         parts = []
@@ -137,7 +137,7 @@ def tool(func):
             raise TypeError("**kwargs is not supported in tool parameters.")
 
         required = False
-        if param.default == inspect._empty:
+        if param.default is inspect.Parameter.empty:
             required = True
 
         description = ""
