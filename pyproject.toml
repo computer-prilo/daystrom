@@ -1,15 +1,15 @@
 [project]
 name = "daystrom"
-version = "0.1.0"
+version = "0.1.1"
 description = "Daystrom is an agent framework for easily building workflows"
 authors = [
     { name = "Lucas Teixeira", email = "lemetechnical@gmail.com" }
 ]
 readme = "README.md"
 requires-python = ">=3.12"
-license = "FSL-1.1-MIT"
+license = "LicenseRef-FSL-1.1-MIT"
 #license = { text = "FSL-1.1-MIT" }
-#license-files = ["LICENSE.md"]
+license-files = ["LICENSE.md"]
 dependencies = [
     "docstring-parser>=0.17.0",
     "instructor>=1.13.0",
