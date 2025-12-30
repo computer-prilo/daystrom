@@ -1,6 +1,6 @@
 import pytest
 
-from daystrom.context import Context, Message
+from daystrom.components import Context, Message
 
 
 class TestMessage:

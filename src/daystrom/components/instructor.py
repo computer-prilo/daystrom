@@ -1,6 +1,6 @@
 import os
 from dataclasses import dataclass
-from typing import Generic, TypeVar
+from typing import TypeVar
 
 import instructor
 from openai.types.chat import (  # ChatCompletionDeveloperMessageParam, # should probably use this one, it replaces system_message on some newer models apparently; ChatCompletionFunctionMessageParam,; ChatCompletionToolMessageParam,
@@ -11,8 +11,7 @@ from openai.types.chat import (  # ChatCompletionDeveloperMessageParam, # should
 )
 from pydantic import BaseModel
 
-from daystrom import Context
-from daystrom.components import Component
+from daystrom.components import Component, Context
 from daystrom.exceptions import InvalidComponentError
 
 

@@ -5,11 +5,10 @@ from openrouter.components import AssistantMessage
 from openrouter.components import Message as OpenRouterMessage  # , ToolResponseMessage
 from openrouter.components import SystemMessage, UserMessage
 
-from daystrom import Context
-from daystrom.components import LLM
+from daystrom.components import LLM, Context, LLMResponse
 
 
-class OpenRouterChat(LLM[str]):
+class OpenRouterChat(LLM):
     def __init__(
         self,
         model: str,
@@ -24,8 +23,9 @@ class OpenRouterChat(LLM[str]):
         self.model = model
         super().__init__()
 
-    def invoke(self, prompt) -> str:
-        return "".join(self.invoke_stream(prompt))
+    def invoke(self, prompt) -> LLMResponse:
+        response = LLMResponse(text="".join(self.invoke_stream(prompt)), tool_calls=[])
+        return response
 
     def invoke_stream(self, prompt):
         self.context.add_message("user", prompt)

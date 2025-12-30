@@ -1,15 +1,21 @@
+import json
 import os
+from typing import get_origin
 
 from openai import OpenAI
-from openai.types.chat import (  # ChatCompletionDeveloperMessageParam, # should probably use this one, it replaces system_message on some newer models apparently; ChatCompletionFunctionMessageParam,; ChatCompletionToolMessageParam,
+from openai.types.chat import (  # ChatCompletionSystemMessageParam,; ChatCompletionMessageCustomToolCall,
     ChatCompletionAssistantMessageParam,
+    ChatCompletionDeveloperMessageParam,
+    ChatCompletionMessageFunctionToolCall,
     ChatCompletionMessageParam,
-    ChatCompletionSystemMessageParam,
+    ChatCompletionToolMessageParam,
+    ChatCompletionToolParam,
+    ChatCompletionToolUnionParam,
     ChatCompletionUserMessageParam,
 )
+from openai.types.shared_params import FunctionDefinition
 
-from daystrom import Context
-from daystrom.components import LLM, LLMResponse
+from daystrom.components import LLM, Context, LLMResponse, Tool, ToolCall
 from daystrom.exceptions import InvalidComponentError
 
 
@@ -20,26 +26,55 @@ class OpenAIChatCompletions(LLM):
         api_key: str | None = None,
         url: str | None = None,
         context: Context | None = None,
+        tools: dict[str, Tool] = {},
     ):
-        self.client = OpenAI(
-            base_url=url, api_key=os.getenv("OPENROUTER_API_KEY") or api_key
-        )
-        if context:
-            self.context = context
-        else:
-            self.context = Context()
         self.model = model
-        super().__init__()
+        self.client = OpenAI(
+            base_url=url,
+            api_key=os.getenv("OPENAI_API_KEY")
+            or os.getenv("OPENROUTER_API_KEY")
+            or api_key,
+        )
+        super().__init__(context=context, tools=tools)
 
-    def invoke(self, prompt) -> LLMResponse:
-        self.context.add_message("user", prompt)
+    def invoke(self, prompt: str | None = None) -> LLMResponse:
+        if prompt:
+            self.context.add_message("user", prompt)
+
         messages = self._get_prompt_context()
         completion = self.client.chat.completions.create(
-            messages=messages, model=self.model
+            model=self.model,
+            tools=self._get_tool_context(),
+            messages=messages,
         )
         completion_text = completion.choices[0].message.content or ""
-        self.context.add_message("assistant", completion_text)
-        response = LLMResponse(text=completion_text, tool_calls=[])
+
+        # tool calls from openai api
+        tool_calls = []
+        for tool_call in completion.choices[0].message.tool_calls or []:
+            if isinstance(tool_call, ChatCompletionMessageFunctionToolCall):
+                tool = ToolCall(
+                    tool=self.tools[tool_call.function.name],
+                    tool_call_id=tool_call.id,
+                    args=[],
+                    kwargs=(
+                        json.loads(tool_call.function.arguments)
+                        if tool_call.function.arguments
+                        else {}
+                    ),
+                )
+                tool_calls.append(tool)
+            else:
+                raise InvalidComponentError(
+                    self.__class__.__name__,
+                    "Found unsupported tool call - missing 'function' attribute",
+                )
+
+        self.context.add_message(
+            role="assistant", text=completion_text, tool_calls=tool_calls
+        )
+        # breakpoint()
+        response = LLMResponse(text=completion_text, tool_calls=tool_calls)
         return response
 
     def _get_prompt_context(self) -> list[ChatCompletionMessageParam]:
@@ -54,101 +89,87 @@ class OpenAIChatCompletions(LLM):
                         ChatCompletionUserMessageParam(role="user", content=msg.text)
                     )
                 case "assistant":
+                    tool_calls = []
+                    for tool_call in msg.tool_calls:
+                        # ChatCompletionMessageToolCallUnionParam
+                        tool_calls.append(
+                            {
+                                "function": {
+                                    "name": tool_call.tool.name,
+                                    "arguments": json.dumps(tool_call.kwargs),
+                                },
+                                "type": "function",
+                                "id": tool_call.tool_call_id,
+                            }
+                        )
                     fmt_messages.append(
                         ChatCompletionAssistantMessageParam(
-                            role="assistant", content=msg.text
+                            role="assistant", content=msg.text, tool_calls=tool_calls
                         )
                     )
                 case "system":
                     fmt_messages.append(
-                        ChatCompletionSystemMessageParam(
-                            role="system", content=msg.text
+                        ChatCompletionDeveloperMessageParam(
+                            role="developer", content=msg.text
                         )
+                    )
+                case "tool":
+                    fmt_messages.append(
+                        ChatCompletionToolMessageParam(
+                            role="tool", content=msg.text, tool_call_id=msg.tool_call_id
+                        )
+                    )
+                case _:
+                    raise ValueError(
+                        f"Unsupport message role: {msg.role} for {self.__class__.__name__}"
                     )
 
         return fmt_messages
 
+    def _get_tool_context(self) -> list[ChatCompletionToolUnionParam]:
+        tool_schemas = []
 
-# this is a decorator to be @tool above each tool fuction
-def tool(func):
-    docstring = parse(func.__doc__ or "")
-    inspect_params = inspect.signature(func).parameters
-    if len(docstring.params) != len(inspect_params):
-        raise ValueError(
-            f"Type hints do not align with docstrings: num_args: (type hint) {len(inspect_params)} vs. {len(docstring.params)} (docstring)"
-        )
-
-    func_params = {}
-    required_func_params = []
-    py_to_json_type_map = {
-        "list": "array",
-        "tuple": "array",
-        "int": "integer",
-        "str": "string",
-    }
-    # py_to_json_type_map = {
-    #    "dict": "object",
-    #    "list": "array",
-    #    "tuple": "array",
-    #    "str": "string",
-    #    "int": "integer",
-    #    "float": "number",
-    #    "None": "null",
-    #    #True   true
-    #    #False   false
-    #    #int, float, int- & float-derived Enums     number
-    # }
-    for idx, (name, param) in enumerate(inspect_params.items()):
-        if param.default == inspect._empty:
-            required_func_params.append(name)
-
-        param_type_name = py_to_json_type_map.get(
-            param.annotation.__name__, param.annotation.__name__
-        )
-        if param.annotation == inspect._empty:
-            param_type_name = "string"
-
-        if name != docstring.params[idx].arg_name:
-            raise TypeError(
-                f"Type hints do not align with docstrings: arg_name: (type hint) {name} vs. {docstring.params[idx].arg_name} (docstring)"
+        for tool in self.tools.values():
+            function = FunctionDefinition(
+                name=tool.name,
+                description=tool.description,
+                parameters=self._format_tool_params(tool),
             )
+            tool_schema = ChatCompletionToolParam(function=function, type="function")
+            tool_schemas.append(tool_schema)
+        return tool_schemas
 
-        func_params[name] = {
-            "type": param_type_name,
-            "description": docstring.params[idx].description,
+    def _format_tool_params(self, tool: Tool) -> dict:
+        params = {"type": "object", "properties": {}}
+        required_params = []
+        type_map = {
+            dict: "object",
+            list: "array",
+            tuple: "array",
+            str: "string",
+            int: "integer",
+            float: "number",
+            None: "null",
+            bool: "boolean",
         }
 
-        if get_origin(param.annotation) in (list, tuple):
-            if len(param.annotation.__args__) > 1:
-                raise TypeError(
-                    "Only single-type iterables are allowed as parameters to tool calls."
-                )
-            else:
-                func_params[name]["items"] = {
-                    "type": py_to_json_type_map.get(
-                        param.annotation.__args__[0].__name__,
-                        param.annotation.__args__[0].__name__,
-                    )
+        for pname, pinfo in tool.params.items():
+            params["properties"][pname] = {
+                "type": type_map[get_origin(pinfo["type"]) or pinfo["type"]],
+                "description": pinfo["description"],
+            }
+
+            param_items = pinfo.get("items")
+            if param_items is not None:
+                param_type = param_items["type"]
+                params["properties"][pname]["items"] = {
+                    "type": type_map[get_origin(param_type) or param_type],
                 }
 
-    tool_desc = docstring.long_description or docstring.short_description or ""
-    tool_schema = {
-        "type": "function",
-        "function": {
-            "name": func.__name__,
-            "description": tool_desc,
-            "parameters": {
-                "type": "object",
-                "properties": func_params,
-                "required": required_func_params,
-            },
-        },
-    }
+            if pinfo["required"]:
+                required_params.append(pname)
 
-    TOOL_SCHEMAS.append(tool_schema)
-    TOOL_MAPPING[func.__name__] = func
+        if required_params:
+            params["required"] = required_params
 
-    def wrapper(*args, **kwargs):
-        return func(*args, **kwargs)
-
-    return wrapper
+        return params
