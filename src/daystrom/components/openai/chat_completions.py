@@ -120,7 +120,7 @@ class OpenAIChatCompletions(LLM):
                     )
                 case _:
                     raise ValueError(
-                        f"Unsupport message role: {msg.role} for {self.__class__.__name__}"
+                        f"Unsupported message role: {msg.role} for {self.__class__.__name__}"
                     )
 
         return fmt_messages
