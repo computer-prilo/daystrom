@@ -11,7 +11,7 @@ from .base import (
     ToolCall,
     tool,
 )
-from .instructor import Instructor, Providers
+from .instructor import Instructor
 
 __all__ = [
     "DEFAULT_TOOLS",
@@ -26,5 +26,4 @@ __all__ = [
     "ToolCall",
     "tool",
     "Instructor",
-    "Providers",
 ]

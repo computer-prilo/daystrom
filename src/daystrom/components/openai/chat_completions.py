@@ -47,6 +47,7 @@ class OpenAIChatCompletions(LLM):
             tools=self._get_tool_context(),
             messages=messages,
         )
+        self.track_usage(completion.usage)
         completion_text = completion.choices[0].message.content or ""
 
         # tool calls from openai api
@@ -75,6 +76,10 @@ class OpenAIChatCompletions(LLM):
         )
         response = LLMResponse(text=completion_text, tool_calls=tool_calls)
         return response
+
+    def track_usage(self, usage):
+        self.output_tokens += usage.completion_tokens
+        self.input_tokens += usage.prompt_tokens
 
     def _get_prompt_context(self) -> list[ChatCompletionMessageParam]:
         """

@@ -12,7 +12,7 @@ ComponentResponseT = TypeVar("ComponentResponseT")
 class Component(Generic[ComponentResponseT], ABC):
     @abstractmethod
     def invoke(self, *args, **kwargs) -> ComponentResponseT | None:
-        pass
+        pass  # pragma: no cover
 
 
 class Tool:
@@ -62,11 +62,11 @@ class Message:
         parts = []
         parts.append(f"{self.role}: {self.text}")
         if self.tool_call_id:
-            parts.append(f"  Tool Call ID: {self.tool_call_id}")
+            parts.append(f"    Tool Call ID: {self.tool_call_id}")
         if self.tool_calls:
-            parts.append("  Tool Calls:")
+            parts.append("    Tool Calls:")
             for tool in self.tool_calls:
-                parts.append(f"  {str(tool)}")
+                parts.append(f"    {str(tool)}")
 
         return "\n".join(parts)
 
@@ -107,6 +107,8 @@ class AgentResponse:
 class LLM(Component[LLMResponse]):
     context: Context
     tools: dict[str, Tool]
+    input_tokens: int
+    output_tokens: int
 
     def __init__(
         self, context: Context | None = None, tools: dict[str, Tool] | None = None
@@ -117,10 +119,16 @@ class LLM(Component[LLMResponse]):
             self.context = Context()
 
         self.tools = tools or {}
+        self.input_tokens: int = 0
+        self.output_tokens: int = 0
 
     @abstractmethod
     def invoke(self, *args, **kwargs) -> LLMResponse:
-        pass
+        pass  # pragma: no cover
+
+    @abstractmethod
+    def track_usage(self, *args, **kwargs):
+        pass  # pragma: no cover
 
 
 DEFAULT_TOOLS = {}

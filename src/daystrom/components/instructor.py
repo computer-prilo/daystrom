@@ -1,3 +1,4 @@
+import json
 import os
 from dataclasses import dataclass
 from typing import TypeVar
@@ -7,6 +8,7 @@ from openai.types.chat import (  # ChatCompletionDeveloperMessageParam, # should
     ChatCompletionAssistantMessageParam,
     ChatCompletionMessageParam,
     ChatCompletionSystemMessageParam,
+    ChatCompletionToolMessageParam,
     ChatCompletionUserMessageParam,
 )
 from pydantic import BaseModel
@@ -22,6 +24,7 @@ class Provider:
 
 
 class Providers:
+    openai = Provider(name="openai", display_name="Open AI")
     openrouter = Provider(name="openrouter", display_name="OpenRouter")
 
 
@@ -79,15 +82,47 @@ class Instructor(Component[InstructorResponseT]):
                         ChatCompletionUserMessageParam(role="user", content=msg.text)
                     )
                 case "assistant":
-                    fmt_messages.append(
-                        ChatCompletionAssistantMessageParam(
-                            role="assistant", content=msg.text
+                    tool_calls = []
+                    for tool_call in msg.tool_calls:
+                        # ChatCompletionMessageToolCallUnionParam
+                        tool_calls.append(
+                            {
+                                "function": {
+                                    "name": tool_call.tool.name,
+                                    "arguments": json.dumps(tool_call.kwargs),
+                                },
+                                "type": "function",
+                                "id": tool_call.tool_call_id,
+                            }
                         )
-                    )
+                    if tool_calls:
+                        fmt_messages.append(
+                            ChatCompletionAssistantMessageParam(
+                                role="assistant",
+                                content=msg.text,
+                                tool_calls=tool_calls,
+                            )
+                        )
+                    else:
+                        fmt_messages.append(
+                            ChatCompletionAssistantMessageParam(
+                                role="assistant", content=msg.text
+                            )
+                        )
                 case "system":
                     fmt_messages.append(
                         ChatCompletionSystemMessageParam(
                             role="system", content=msg.text
                         )
+                    )
+                case "tool":
+                    fmt_messages.append(
+                        ChatCompletionToolMessageParam(
+                            role="tool", content=msg.text, tool_call_id=msg.tool_call_id
+                        )
+                    )
+                case _:
+                    raise ValueError(
+                        f"Unsupported message role: {msg.role} for {self.__class__.__name__}"
                     )
         return fmt_messages

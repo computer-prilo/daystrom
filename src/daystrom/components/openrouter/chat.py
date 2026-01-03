@@ -58,6 +58,10 @@ class OpenRouterChat(LLM):
                 yield content_chunk
         self.context.add_message("assistant", response_content)
 
+    def track_usage(self, usage):
+        self.output_tokens += usage.completion_tokens
+        self.input_tokens += usage.prompt_tokens
+
     def _get_prompt_context(self) -> list[OpenRouterMessage]:
         """
         Returns the messages in the context formatted for OpenRouter API

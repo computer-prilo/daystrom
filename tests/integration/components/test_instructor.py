@@ -1,7 +1,8 @@
 import pytest
 from pydantic import BaseModel
 
-from daystrom.components import Instructor, Providers
+from daystrom.components import Instructor
+from daystrom.components.instructor import Providers
 
 
 @pytest.fixture

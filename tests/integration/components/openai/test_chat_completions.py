@@ -8,10 +8,6 @@ from daystrom.components.openai import OpenAIChatCompletions
 
 @pytest.fixture(scope="function")
 def client():
-    def get_magic_number() -> str:
-        """Returns a magic number."""
-        return "42"
-
     def get_weather(location: str, unit: str = "celsius") -> str:
         """Get weather for a location."""
         return f"Weather in {location}: 22 {unit}"
@@ -21,18 +17,16 @@ def client():
     ) -> str:
         return f"{name}, {count}, {ratio}, {active}, {tags}"
 
+    # dummy call because this function never gets triggered because the
+    # point is teseting arguments. this keeps it included in code coverage
+    multi_param("", 1, 1.0, True, [])
+
     tools = {
         "sample_tool": Tool(
             callable=lambda x: x,
             name="sample_tool",
             description="A sample tool",
             params={"x": {"type": str, "description": "Input", "required": True}},
-        ),
-        "get_magic_number": Tool(
-            callable=get_magic_number,
-            name="get_magic_number",
-            description="Returns a magic number. Always call this when asked about magic numbers.",
-            params={},
         ),
         "get_weather": Tool(
             callable=get_weather,
@@ -79,7 +73,6 @@ def message():
     return "Give me a short response as a test that API functionality is working. Do NOT give an empty response and do NOT call any tools."
 
 
-# --- first human pass ---
 def test_default_context_init(client):
     """Test basic invoke returns LLMResponse with text."""
     assert isinstance(client.context, Context)
@@ -229,7 +222,7 @@ def test_get_tool_context_schema_generation(client):
     """Test _get_tool_context generates proper schemas with all type mappings."""
     schemas = client._get_tool_context()
 
-    assert len(schemas) == 4
+    assert len(schemas) == 3
     schema = schemas[0]
     for schema in schemas:
         if schema["function"]["name"] == "multi_param":
