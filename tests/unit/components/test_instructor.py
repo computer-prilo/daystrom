@@ -1,8 +1,8 @@
 import pytest
 from pydantic import BaseModel
 
+from daystrom import Provider
 from daystrom.components import Context, Instructor, Tool, ToolCall
-from daystrom.components.instructor import Providers
 
 
 @pytest.fixture
@@ -12,7 +12,7 @@ def client():
         state: str
 
     return Instructor(
-        Providers.openrouter,
+        Provider.OPENROUTER,
         model="anthropic/claude-haiku-4.5",
         response_model=CityState,
     )
@@ -28,7 +28,7 @@ def test_init_with_context(message):
     existing_context.add_message("system", "You are helpful.")
     existing_context.add_message("user", message)
     instructor = Instructor(
-        Providers.openrouter,
+        Provider.OPENROUTER,
         model="anthropic/claude-haiku-4.5",
         response_model=BaseModel,
         context=existing_context,

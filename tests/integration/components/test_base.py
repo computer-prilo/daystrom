@@ -2,6 +2,7 @@ import os
 
 import pytest
 
+from daystrom import Provider
 from daystrom.components import Agent, AgentResponse, Context, Tool
 from daystrom.components.openai import OpenAIChatCompletions
 
@@ -65,9 +66,9 @@ def tools():
 @pytest.fixture(scope="function")
 def llm(tools):
     return OpenAIChatCompletions(
+        provider=Provider.OPENROUTER,
         model="anthropic/claude-haiku-4.5",
         api_key=os.getenv("OPENROUTER_API_KEY"),
-        url="https://openrouter.ai/api/v1",
         tools=tools,
     )
 

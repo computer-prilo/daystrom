@@ -1,6 +1,5 @@
 import json
 import os
-from dataclasses import dataclass
 from typing import TypeVar
 
 import instructor
@@ -13,20 +12,9 @@ from openai.types.chat import (  # ChatCompletionDeveloperMessageParam, # should
 )
 from pydantic import BaseModel
 
+from daystrom import Provider
 from daystrom.components import Component, Context
 from daystrom.exceptions import InvalidComponentError
-
-
-@dataclass
-class Provider:
-    name: str
-    display_name: str
-
-
-class Providers:
-    openai = Provider(name="openai", display_name="Open AI")
-    openrouter = Provider(name="openrouter", display_name="OpenRouter")
-
 
 InstructorResponseT = TypeVar("InstructorResponseT", bound=BaseModel)
 
@@ -45,11 +33,15 @@ class Instructor(Component[InstructorResponseT]):
         context: Context | None = None,
     ):
         match provider:
-            case Providers.openrouter:
-                self.client = instructor.from_provider(
-                    f"{provider.name}/{model}",
-                    api_key=os.getenv("OPENROUTER_API_KEY") or api_key,
-                )
+            case Provider.OPENAI:
+                api_key = os.getenv("OPENAI_API_KEY") or api_key
+            case Provider.OPENROUTER:
+                api_key = os.getenv("OPENROUTER_API_KEY") or api_key
+
+        self.client = instructor.from_provider(
+            f"{provider.value.name}/{model}",
+            api_key=api_key,
+        )
 
         if not self.client:
             raise InvalidComponentError(

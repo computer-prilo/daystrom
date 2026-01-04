@@ -2,6 +2,7 @@ import os
 
 import pytest
 
+from daystrom import Provider
 from daystrom.components import Context, LLMResponse, Tool, ToolCall
 from daystrom.components.openai import OpenAIChatCompletions
 
@@ -61,9 +62,9 @@ def client():
     }
 
     return OpenAIChatCompletions(
+        provider=Provider.OPENROUTER,
         model="anthropic/claude-haiku-4.5",
         api_key=os.getenv("OPENROUTER_API_KEY"),
-        url="https://openrouter.ai/api/v1",
         tools=tools,
     )
 
@@ -86,9 +87,9 @@ def test_custom_context_init():
     existing_context.add_message("user", "Previous message")
 
     client2 = OpenAIChatCompletions(
+        provider=Provider.OPENROUTER,
         model="anthropic/claude-haiku-4.5",
         api_key=os.getenv("OPENROUTER_API_KEY"),
-        url="https://openrouter.ai/api/v1",
         context=existing_context,
     )
     assert client2.context is existing_context
@@ -121,8 +122,8 @@ def test_invoke_without_prompt_and_with_system_message():
     context.add_message("user", "Respond now.")
 
     client = OpenAIChatCompletions(
+        provider=Provider.OPENROUTER,
         model="anthropic/claude-haiku-4.5",
-        url="https://openrouter.ai/api/v1",
         context=context,
     )
 
@@ -249,7 +250,7 @@ def test_get_tool_context_schema_generation(client):
 
     # Empty tools returns empty list
     client2 = OpenAIChatCompletions(
+        provider=Provider.OPENROUTER,
         model="anthropic/claude-haiku-4.5",
-        url="https://openrouter.ai/api/v1",
     )
     assert client2._get_tool_context() == []

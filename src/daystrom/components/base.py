@@ -6,6 +6,8 @@ from typing import Generic, TypeVar, get_origin
 
 from docstring_parser import parse
 
+from daystrom import Provider
+
 ComponentResponseT = TypeVar("ComponentResponseT")
 
 
@@ -107,12 +109,25 @@ class AgentResponse:
 class LLM(Component[LLMResponse]):
     context: Context
     tools: dict[str, Tool]
+    provider: Provider
+    model: str
     input_tokens: int
     output_tokens: int
+    input_cost: float | None
+    output_cost: float | None
+    context_limit: int | None
+    output_limit: int | None
 
     def __init__(
-        self, context: Context | None = None, tools: dict[str, Tool] | None = None
+        self,
+        provider: Provider,
+        model: str,
+        context: Context | None = None,
+        tools: dict[str, Tool] | None = None,
     ):
+        self.provider = provider
+        self.model = model
+
         if context:
             self.context = context
         else:
@@ -122,6 +137,17 @@ class LLM(Component[LLMResponse]):
         self.input_tokens: int = 0
         self.output_tokens: int = 0
 
+        self.input_cost = None
+        self.output_cost = None
+        self.context_limit = None
+        self.output_limit = None
+        model_metadata = provider.value.models.get(self.model)
+        if model_metadata:
+            self.input_cost = model_metadata.input_cost
+            self.output_cost = model_metadata.output_cost
+            self.context_limit = model_metadata.context_limit
+            self.output_limit = model_metadata.output_limit
+
     @abstractmethod
     def invoke(self, *args, **kwargs) -> LLMResponse:
         pass  # pragma: no cover
@@ -129,6 +155,19 @@ class LLM(Component[LLMResponse]):
     @abstractmethod
     def track_usage(self, *args, **kwargs):
         pass  # pragma: no cover
+
+    @property
+    def total_cost(self) -> float:
+        """Calculate total cost based on token usage and costs.
+
+        Returns 0.0 if cost information is not available.
+        """
+        if self.input_cost is None and self.output_cost is None:
+            return 0.0
+        # Costs are per million tokens
+        input_total = (self.input_tokens / 1_000_000) * (self.input_cost or 0.0)
+        output_total = (self.output_tokens / 1_000_000) * (self.output_cost or 0.0)
+        return input_total + output_total
 
 
 DEFAULT_TOOLS = {}
