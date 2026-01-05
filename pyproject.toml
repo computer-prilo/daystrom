@@ -1,6 +1,6 @@
 [project]
 name = "daystrom"
-version = "0.1.1"
+version = "0.1.2"
 description = "Daystrom is an agent framework for easily building workflows"
 authors = [
     { name = "Lucas Teixeira", email = "lemetechnical@gmail.com" }
