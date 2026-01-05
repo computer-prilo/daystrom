@@ -1,6 +1,4 @@
-import pytest
-
-from daystrom.providers import ModelMetadata, Provider, ProviderMetadata
+from daystrom.providers import ModelMetadata, ProviderMetadata
 
 
 class TestModelMetadata:
