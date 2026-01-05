@@ -2,7 +2,8 @@ import re
 
 import pytest
 
-from daystrom.components import DEFAULT_TOOLS, Context, Message, Tool, ToolCall, tool
+from daystrom import Provider
+from daystrom.components import DEFAULT_TOOLS, LLM, Context, LLMResponse, Message, Tool, ToolCall, tool
 
 
 def test_tool_decorator_basic():
@@ -217,6 +218,68 @@ class TestMessage:
     def test_str_with_different_roles(self):
         assert str(Message(role="assistant", text="Hi")) == "assistant: Hi"
         assert str(Message(role="system", text="Be helpful")) == "system: Be helpful"
+
+
+class ConcreteLLM(LLM):
+    """Minimal concrete LLM subclass for testing."""
+
+    def invoke(self, *args, **kwargs) -> LLMResponse:
+        return LLMResponse(text="", tool_calls=[])
+
+    def track_usage(self, *args, **kwargs):
+        pass
+
+
+class TestLLM:
+    def test_total_cost_both_costs(self):
+        """Test total_cost with both input and output costs."""
+        llm = ConcreteLLM(provider=Provider.OPENROUTER, model="test-model")
+        llm.input_cost = 2.5
+        llm.output_cost = 10.0
+        llm.input_tokens = 1000
+        llm.output_tokens = 500
+
+        # (1000 / 1_000_000) * 2.5 + (500 / 1_000_000) * 10.0
+        # = 0.0025 + 0.005 = 0.0075
+        assert llm.total_cost == 0.0075
+
+    def test_total_cost_input_only(self):
+        """Test total_cost with only input cost set."""
+        llm = ConcreteLLM(provider=Provider.OPENROUTER, model="test-model")
+        llm.input_cost = 2.5
+        llm.output_cost = None
+        llm.input_tokens = 1000
+
+        # (1000 / 1_000_000) * 2.5 = 0.0025
+        assert llm.total_cost == 0.0025
+
+    def test_total_cost_output_only(self):
+        """Test total_cost with only output cost set."""
+        llm = ConcreteLLM(provider=Provider.OPENROUTER, model="test-model")
+        llm.input_cost = None
+        llm.output_cost = 10.0
+        llm.output_tokens = 500
+
+        # (500 / 1_000_000) * 10.0 = 0.005
+        assert llm.total_cost == 0.005
+
+    def test_total_cost_both_none(self):
+        """Test total_cost when both costs are None."""
+        llm = ConcreteLLM(provider=Provider.OPENROUTER, model="test-model")
+        llm.input_cost = None
+        llm.output_cost = None
+
+        assert llm.total_cost == 0.0
+
+    def test_total_cost_zero_tokens(self):
+        """Test total_cost with valid costs but zero tokens."""
+        llm = ConcreteLLM(provider=Provider.OPENROUTER, model="test-model")
+        llm.input_cost = 2.5
+        llm.output_cost = 10.0
+        llm.input_tokens = 0
+        llm.output_tokens = 0
+
+        assert llm.total_cost == 0.0
 
 
 class TestContext:

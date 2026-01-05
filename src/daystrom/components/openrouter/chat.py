@@ -5,6 +5,7 @@ from openrouter.components import AssistantMessage
 from openrouter.components import Message as OpenRouterMessage  # , ToolResponseMessage
 from openrouter.components import SystemMessage, UserMessage
 
+from daystrom import Provider
 from daystrom.components import LLM, Context, LLMResponse
 
 
@@ -15,13 +16,8 @@ class OpenRouterChat(LLM):
         api_key: str | None = None,
         context: Context | None = None,
     ):
-        self.client = OpenRouter(api_key=os.getenv("OPENROUTER_API_KEY") or api_key)
-        if context:
-            self.context = context
-        else:
-            self.context = Context()
-        self.model = model
-        super().__init__(context=context)
+        super().__init__(model=model, context=context, provider=Provider.OPENROUTER)
+        self.client = OpenRouter(api_key=api_key or self.provider.value.get_api_key())
 
     def invoke(self, prompt) -> LLMResponse:
         response = LLMResponse(text="".join(self.invoke_stream(prompt)), tool_calls=[])
@@ -35,6 +31,7 @@ class OpenRouterChat(LLM):
         response_content = ""
         for event in res:
             if isinstance(event.choices[0].delta.content, str):
+                self.track_usage(event.usage)
                 content_chunk = event.choices[0].delta.content
                 response_content += content_chunk
                 yield content_chunk
@@ -53,14 +50,16 @@ class OpenRouterChat(LLM):
         response_content = ""
         async for event in res:
             if isinstance(event.choices[0].delta.content, str):
+                self.track_usage(event.usage)
                 content_chunk = event.choices[0].delta.content
                 response_content += content_chunk
                 yield content_chunk
         self.context.add_message("assistant", response_content)
 
     def track_usage(self, usage):
-        self.output_tokens += usage.completion_tokens
-        self.input_tokens += usage.prompt_tokens
+        if usage:
+            self.output_tokens += usage.completion_tokens
+            self.input_tokens += usage.prompt_tokens
 
     def _get_prompt_context(self) -> list[OpenRouterMessage]:
         """

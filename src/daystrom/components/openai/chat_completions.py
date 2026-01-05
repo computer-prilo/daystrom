@@ -15,6 +15,7 @@ from openai.types.chat import (
 )
 from openai.types.shared_params import FunctionDefinition
 
+from daystrom import Provider
 from daystrom.components import LLM, Context, LLMResponse, Tool, ToolCall
 from daystrom.exceptions import InvalidComponentError
 
@@ -23,19 +24,21 @@ class OpenAIChatCompletions(LLM):
     def __init__(
         self,
         model: str,
+        provider: Provider | None = None,
         api_key: str | None = None,
-        url: str | None = None,
         context: Context | None = None,
         tools: dict[str, Tool] | None = None,
     ):
-        self.model = model
-        self.client = OpenAI(
-            base_url=url,
-            api_key=os.getenv("OPENAI_API_KEY")
-            or os.getenv("OPENROUTER_API_KEY")
-            or api_key,
+        super().__init__(
+            model=model,
+            context=context,
+            tools=tools or {},
+            provider=provider or Provider.OPENAI,
         )
-        super().__init__(context=context, tools=tools or {})
+        self.client = OpenAI(
+            base_url=self.provider.value.base_url,
+            api_key=api_key or self.provider.value.get_api_key(),
+        )
 
     def invoke(self, prompt: str | None = None) -> LLMResponse:
         if prompt:
@@ -78,8 +81,9 @@ class OpenAIChatCompletions(LLM):
         return response
 
     def track_usage(self, usage):
-        self.output_tokens += usage.completion_tokens
-        self.input_tokens += usage.prompt_tokens
+        if usage:
+            self.output_tokens += usage.completion_tokens
+            self.input_tokens += usage.prompt_tokens
 
     def _get_prompt_context(self) -> list[ChatCompletionMessageParam]:
         """
