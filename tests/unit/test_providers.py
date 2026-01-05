@@ -63,7 +63,7 @@ class TestProviderMetadata:
 
         ProviderMetadata.get_data.cache_clear()
 
-    def test_get_data_handles_api_failure(self, mocker, capsys):
+    def test_get_data_handles_api_failure(self, mocker, caplog):
         """Test get_data handles API failures gracefully."""
         ProviderMetadata.get_data.cache_clear()
 
@@ -74,10 +74,8 @@ class TestProviderMetadata:
         data = ProviderMetadata.get_data()
 
         assert data is None
-
-        captured = capsys.readouterr()
-        assert "[ERROR]" in captured.out
-        assert "models.dev" in captured.out
+        assert "Failed" in caplog.text
+        assert "models.dev" in caplog.messages[-1]
 
         ProviderMetadata.get_data.cache_clear()
 

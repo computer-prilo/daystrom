@@ -1,5 +1,6 @@
 import functools
 import inspect
+import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Generic, TypeVar, get_origin
@@ -9,6 +10,8 @@ from docstring_parser import parse
 from daystrom import Provider
 
 ComponentResponseT = TypeVar("ComponentResponseT")
+
+log = logging.getLogger(__name__)
 
 
 class Component(Generic[ComponentResponseT], ABC):
@@ -251,8 +254,11 @@ class Agent(Component[AgentResponse]):
                     self.llm.context.add_message(
                         "tool", tool_res, tool_call.tool_call_id
                     )
-                except Exception:
-                    raise
+                except Exception as e:
+                    self.llm.context.add_message(
+                        "tool", f"Tool call failed! Error: {e}", tool_call.tool_call_id
+                    )
+                    log.exception(f"Tool call failed: {tool_call.tool.name}")
 
             res = self.llm.invoke()
 
