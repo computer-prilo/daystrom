@@ -255,7 +255,10 @@ class Agent(Component[AgentResponse]):
                         "tool", tool_res, tool_call.tool_call_id
                     )
                 except Exception as e:
-                    log.error(f"[Agent] Tool call failed: {e}")
+                    self.llm.context.add_message(
+                        "tool", f"Tool call failed! Error: {e}", tool_call.tool_call_id
+                    )
+                    log.exception(f"Tool call failed: {tool_call.tool.name}")
 
             res = self.llm.invoke()
 
