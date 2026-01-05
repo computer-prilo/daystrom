@@ -1,9 +1,12 @@
+import logging
 import os
 from dataclasses import dataclass
 from enum import Enum
 from functools import cache
 
 import httpx
+
+log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -64,8 +67,8 @@ class ProviderMetadata:
             response.raise_for_status()
             data = response.json()
         except Exception:
-            err = "[ERROR]: Error pulling model metadata from models.dev. Proceeding..."
-            print(err)
+            err = "Failed to pull model metadata from models.dev. Proceeding without..."
+            log.error(err)
         return data
 
     def get_api_key(self):
