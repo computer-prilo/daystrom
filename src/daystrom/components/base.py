@@ -224,11 +224,6 @@ def tool(func):
     return wrapper
 
 
-@tool
-def fake_tool(a: str = "a", b: str = "b") -> str:
-    return f"{a}:{b} - fake!"
-
-
 class Agent(Component[AgentResponse]):
     def __init__(
         self, llm: LLM, tools: dict[str, Tool] | None = None, max_loops: int = 30

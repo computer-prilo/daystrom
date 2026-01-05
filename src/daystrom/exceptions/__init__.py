@@ -1,3 +1,3 @@
 from .components import InvalidComponentError
 
-__all__ = ["InvalidComponentError"]
+__all__ = ["InvalidComponentError", "ToolCallError"]
