@@ -37,9 +37,7 @@ class OpenAIChatCompletions(LLM):
         )
         self.client = OpenAI(
             base_url=self.provider.value.base_url,
-            api_key=os.getenv("OPENAI_API_KEY")
-            or os.getenv("OPENROUTER_API_KEY")
-            or api_key,
+            api_key=api_key or self.provider.value.get_api_key(),
         )
 
     def invoke(self, prompt: str | None = None) -> LLMResponse:

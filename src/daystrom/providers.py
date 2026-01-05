@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass
 from enum import Enum
 from functools import cache
@@ -18,10 +19,10 @@ class ModelMetadata:
 
 
 class ProviderMetadata:
-
     name: str
     display_name: str
-    base_url: str | None = None
+    base_url: str | None
+    env_names: list[str]
 
     def __init__(
         self,
@@ -32,12 +33,14 @@ class ProviderMetadata:
         self.name = name
         self.display_name = display_name
         self.base_url = base_url
-        self.models = {}
+        self.models: dict[str, ModelMetadata] = {}
+        self.env_names = []
 
         base_data = self.get_data()
         if base_data:
             provider_data = base_data.get(self.name)
             if provider_data:
+                self.env_names = provider_data.get("env", [])
                 for model, metadata in provider_data["models"].items():
                     cost = metadata.get("cost")
                     limit = metadata.get("limit")
@@ -57,13 +60,21 @@ class ProviderMetadata:
         metadata_api_url = "https://models.dev/api.json"
         data = None
         try:
-            response = httpx.get(metadata_api_url, timeout=10.0)
+            response = httpx.get(metadata_api_url, timeout=3.0)
             response.raise_for_status()
             data = response.json()
         except Exception:
             err = "[ERROR]: Error pulling model metadata from models.dev. Proceeding..."
             print(err)
         return data
+
+    def get_api_key(self):
+        api_key = None
+        for env_name in self.env_names:
+            api_key = os.getenv(env_name)
+            if api_key:
+                break
+        return api_key
 
 
 class Provider(Enum):

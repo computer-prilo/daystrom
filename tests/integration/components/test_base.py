@@ -68,7 +68,6 @@ def llm(tools):
     return OpenAIChatCompletions(
         provider=Provider.OPENROUTER,
         model="anthropic/claude-haiku-4.5",
-        api_key=os.getenv("OPENROUTER_API_KEY"),
         tools=tools,
     )
 

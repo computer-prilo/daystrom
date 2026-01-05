@@ -32,15 +32,11 @@ class Instructor(Component[InstructorResponseT]):
         api_key: str | None = None,
         context: Context | None = None,
     ):
-        match provider:
-            case Provider.OPENAI:
-                api_key = os.getenv("OPENAI_API_KEY") or api_key
-            case Provider.OPENROUTER:
-                api_key = os.getenv("OPENROUTER_API_KEY") or api_key
-
+        self.provider = provider
+        self.model = model
         self.client = instructor.from_provider(
             f"{provider.value.name}/{model}",
-            api_key=api_key,
+            api_key=api_key or self.provider.value.get_api_key(),
         )
 
         if not self.client:

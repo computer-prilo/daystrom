@@ -64,7 +64,6 @@ def client():
     return OpenAIChatCompletions(
         provider=Provider.OPENROUTER,
         model="anthropic/claude-haiku-4.5",
-        api_key=os.getenv("OPENROUTER_API_KEY"),
         tools=tools,
     )
 
@@ -89,7 +88,6 @@ def test_custom_context_init():
     client2 = OpenAIChatCompletions(
         provider=Provider.OPENROUTER,
         model="anthropic/claude-haiku-4.5",
-        api_key=os.getenv("OPENROUTER_API_KEY"),
         context=existing_context,
     )
     assert client2.context is existing_context

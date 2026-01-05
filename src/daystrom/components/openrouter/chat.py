@@ -17,7 +17,7 @@ class OpenRouterChat(LLM):
         context: Context | None = None,
     ):
         super().__init__(model=model, context=context, provider=Provider.OPENROUTER)
-        self.client = OpenRouter(api_key=os.getenv("OPENROUTER_API_KEY") or api_key)
+        self.client = OpenRouter(api_key=api_key or self.provider.value.get_api_key())
 
     def invoke(self, prompt) -> LLMResponse:
         response = LLMResponse(text="".join(self.invoke_stream(prompt)), tool_calls=[])
