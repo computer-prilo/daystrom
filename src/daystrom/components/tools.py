@@ -1,7 +1,9 @@
+import json
+
 from markdownify import markdownify as md
 
 from daystrom.components import tool
-from daystrom.exceptions.components import ToolCallError
+from daystrom.exceptions import ToolCallError
 
 
 @tool
@@ -26,33 +28,31 @@ def web_fetch(url: str, format: str = "markdown") -> str:
         case "html":
             accept_header = "text/html;q=1.0, application/xhtml+xml;q=0.9, text/plain;q=0.8, text/markdown;q=0.7, */*;q=0.1"
         case "json":
-            accept_header = "application/json;q=1.0 text/markdown;q=1.0, text/x-markdown;q=0.9, text/plain;q=0.8, text/html;q=0.7, */*;q=0.1"
+            accept_header = "application/json;q=1.0, text/markdown;q=1.0, text/x-markdown;q=0.9, text/plain;q=0.8, text/html;q=0.7, */*;q=0.1"
         case "markdown":
             accept_header = "text/markdown;q=1.0, text/x-markdown;q=0.9, text/plain;q=0.8, text/html;q=0.7, */*;q=0.1"
         case _:
-            # accept_header = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8"
-            pass
+            raise ToolCallError("web_fetch", f"Unsupported format: {format}")
 
     headers = {
         "accept": accept_header,
     }
-    response = httpx.get(url, headers=headers)
+    response = httpx.get(url, timeout=10.0, headers=headers)
     response.raise_for_status()
-    response_type = response.headers.get("content-type")
+    response_type = response.headers.get("content-type") or ""
 
     match format:
         case "text":
             ans = response.text
             if "text/html" in response_type:
-                # TODO: Convert HTML to text
-                pass
+                ans = md(ans, convert=[])
             return ans
         case "html":
             return response.text
         case "json":
             ans = response.text
             if "application/json" in response_type:
-                ans = response.json()
+                ans = json.dumps(response.json())
             return ans
         case "markdown":
             ans = response.text
@@ -60,4 +60,4 @@ def web_fetch(url: str, format: str = "markdown") -> str:
                 ans = md(ans)
             return ans
         case _:
-            raise ToolCallError(f"Unsupported format: {format}")
+            raise ToolCallError("web_fetch", f"Unsupported format: {format}")
