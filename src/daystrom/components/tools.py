@@ -38,7 +38,7 @@ def web_fetch(url: str, format: str = "markdown") -> str:
         "accept": accept_header,
         "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
     }
-    response = httpx.get(url, timeout=10.0, headers=headers)
+    response = httpx.get(url, timeout=10.0, headers=headers, follow_redirects=False)
     if response.is_redirect:
         redirect_url = response.headers.get("location")
         raise ToolCallError(
