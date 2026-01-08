@@ -76,5 +76,4 @@ class TestWebFetchIntegration:
         with pytest.raises(ToolCallError) as exc_info:
             web_fetch("https://httpbin.org/redirect-to?url=https://example.com")
 
-        breakpoint()
         assert "https://example.com" in str(exc_info.value)
