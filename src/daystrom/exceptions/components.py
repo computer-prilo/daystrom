@@ -20,5 +20,5 @@ class ToolCallError(Exception):
         message: str = "Tool call failed - no reason given",
     ):
         self.tool_name = tool_name
-        self.message = f"{tool_name}: {message}"
+        self.message = f"{self.tool_name}: {message}"
         super().__init__(self.message)
