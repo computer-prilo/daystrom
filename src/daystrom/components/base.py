@@ -8,6 +8,7 @@ from typing import Generic, TypeVar, get_origin
 from docstring_parser import parse
 
 from daystrom import Provider
+from daystrom.exceptions import ToolCallError
 
 ComponentResponseT = TypeVar("ComponentResponseT")
 
@@ -224,11 +225,6 @@ def tool(func):
     return wrapper
 
 
-@tool
-def fake_tool(a: str = "a", b: str = "b") -> str:
-    return f"{a}:{b} - fake!"
-
-
 class Agent(Component[AgentResponse]):
     def __init__(
         self, llm: LLM, tools: dict[str, Tool] | None = None, max_loops: int = 30
@@ -254,9 +250,18 @@ class Agent(Component[AgentResponse]):
                     self.llm.context.add_message(
                         "tool", tool_res, tool_call.tool_call_id
                     )
+                except ToolCallError as e:
+                    self.llm.context.add_message(
+                        "tool",
+                        f"Tool call failed! Error: {e.message}",
+                        tool_call.tool_call_id,
+                    )
+                    log.exception(f"Tool call failed: {tool_call.tool.name}")
                 except Exception as e:
                     self.llm.context.add_message(
-                        "tool", f"Tool call failed! Error: {e}", tool_call.tool_call_id
+                        "tool",
+                        f"Tool call failed! Error: {e}",
+                        tool_call.tool_call_id,
                     )
                     log.exception(f"Tool call failed: {tool_call.tool.name}")
 

@@ -1,5 +1,8 @@
 # Agents Guide
 
+## Overview
+Daystrom is a library built to make powerful composable AI workflows easy to build.
+
 ## Build & Test Commands
 - Install: `uv sync && uv pip install -e .`
 - Run all tests: `uv run pytest`
