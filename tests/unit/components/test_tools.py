@@ -118,7 +118,6 @@ class TestWebFetch:
         """Test fetching JSON parses and re-serializes when content-type is application/json."""
         json_data = {"key": "value", "nested": {"a": 1}}
         response = mock_response(
-            # text='{"key": "value", "nested": {"a": 1}}',
             content_type="application/json",
             json_data=json_data,
         )
