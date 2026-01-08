@@ -25,6 +25,7 @@ class TestWebFetch:
             response.headers = {"content-type": content_type}
             response.status_code = status_code
             response.raise_for_status = MagicMock()
+            response.is_redirect = False
 
             if status_code >= 400:
                 response.raise_for_status.side_effect = httpx.HTTPStatusError(
@@ -223,3 +224,15 @@ class TestWebFetch:
         accept = mock_get.call_args.kwargs["headers"]["accept"]
         # json should have highest priority
         assert "application/json;q=1.0" in accept
+
+    def test_redirect_raises_tool_call_error(self, mocker):
+        """Test that redirect responses raise ToolCallError with redirect URL."""
+        response = MagicMock(spec=httpx.Response)
+        response.is_redirect = True
+        response.headers = {"location": "https://example.com/redirected"}
+        mocker.patch("httpx.get", return_value=response)
+
+        with pytest.raises(ToolCallError) as exc_info:
+            web_fetch("https://example.com")
+
+        assert "https://example.com/redirected" in str(exc_info.value)
