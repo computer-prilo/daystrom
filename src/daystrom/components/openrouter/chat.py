@@ -14,18 +14,16 @@ class OpenRouterChat(LLM):
         self,
         model: str,
         api_key: str | None = None,
-        context: Context | None = None,
     ):
-        super().__init__(model=model, context=context, provider=Provider.OPENROUTER)
+        super().__init__(model=model, provider=Provider.OPENROUTER)
         self.client = OpenRouter(api_key=api_key or self.provider.value.get_api_key())
 
-    def invoke(self, prompt) -> LLMResponse:
-        response = LLMResponse(text="".join(self.invoke_stream(prompt)), tool_calls=[])
+    def invoke(self, context) -> LLMResponse:
+        response = LLMResponse(text="".join(self.invoke_stream(context)), tool_calls=[])
         return response
 
-    def invoke_stream(self, prompt):
-        self.context.add_message("user", prompt)
-        messages = self._get_prompt_context()
+    def invoke_stream(self, context: Context):
+        messages = self._get_prompt_context(context)
         res = self.client.chat.send(messages=messages, model=self.model, stream=True)
 
         response_content = ""
@@ -35,14 +33,12 @@ class OpenRouterChat(LLM):
                 content_chunk = event.choices[0].delta.content
                 response_content += content_chunk
                 yield content_chunk
-        self.context.add_message("assistant", response_content)
 
-    async def ainvoke(self, prompt) -> str:
-        return "".join([chunk async for chunk in self.ainvoke_stream(prompt)])
+    async def ainvoke(self, context: Context) -> str:
+        return "".join([chunk async for chunk in self.ainvoke_stream(context)])
 
-    async def ainvoke_stream(self, prompt):
-        self.context.add_message("user", prompt)
-        messages = self._get_prompt_context()
+    async def ainvoke_stream(self, context: Context):
+        messages = self._get_prompt_context(context)
         res = await self.client.chat.send_async(
             messages=messages, model=self.model, stream=True
         )
@@ -54,19 +50,18 @@ class OpenRouterChat(LLM):
                 content_chunk = event.choices[0].delta.content
                 response_content += content_chunk
                 yield content_chunk
-        self.context.add_message("assistant", response_content)
 
     def track_usage(self, usage):
         if usage:
             self.output_tokens += usage.completion_tokens
             self.input_tokens += usage.prompt_tokens
 
-    def _get_prompt_context(self) -> list[OpenRouterMessage]:
+    def _get_prompt_context(self, context: Context) -> list[OpenRouterMessage]:
         """
         Returns the messages in the context formatted for OpenRouter API
         """
         fmt_messages = []
-        for msg in self.context.messages:
+        for msg in context.messages:
             match msg.role:
                 case "user":
                     fmt_messages.append(UserMessage(content=msg.text))

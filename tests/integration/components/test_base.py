@@ -85,6 +85,8 @@ def test_agent_init(llm, tools):
     assert agent.tools is tools
     assert agent.max_loops == 5
     assert agent.llm.tools is tools
+    assert isinstance(agent.context, Context)
+    assert agent.context.messages == []
 
 
 def test_agent_default_max_loops(llm, tools):

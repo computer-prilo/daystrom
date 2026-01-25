@@ -73,12 +73,6 @@ def message():
     return "Give me a short response as a test that API functionality is working. Do NOT give an empty response and do NOT call any tools."
 
 
-def test_default_context_init(client):
-    """Test basic invoke returns LLMResponse with text."""
-    assert isinstance(client.context, Context)
-    assert client.context.messages == []
-
-
 def test_custom_context_init():
     """Test initialization: model storage, context creation/passing, and tools."""
     existing_context = Context()
