@@ -68,24 +68,19 @@ def client():
     )
 
 
-@pytest.fixture(scope="module")
-def message():
-    return "Give me a short response as a test that API functionality is working. Do NOT give an empty response and do NOT call any tools."
+# @pytest.fixture(scope="module")
+# def message():
+#    return "Give me a short response as a test that API functionality is working. Do NOT give an empty response and do NOT call any tools."
 
 
-def test_custom_context_init():
-    """Test initialization: model storage, context creation/passing, and tools."""
-    existing_context = Context()
-    existing_context.add_message("system", "You are helpful.")
-    existing_context.add_message("user", "Previous message")
-
-    client2 = OpenAIChatCompletions(
-        provider=Provider.OPENROUTER,
-        model="anthropic/claude-haiku-4.5",
-        context=existing_context,
+@pytest.fixture
+def context():
+    context = Context()
+    context.add_message(
+        role="user",
+        text="Give me a short response as a test that API functionality is working. Do NOT give an empty response and do NOT call any tools.",
     )
-    assert client2.context is existing_context
-    assert len(client2.context.messages) == 2
+    return context
 
 
 def test_tools_init(client):
@@ -94,47 +89,26 @@ def test_tools_init(client):
     assert client.tools["sample_tool"].name == "sample_tool"
 
 
-def test_invoke(client, message):
-    """Test basic invoke and context tracking returns LLMResponse with text."""
-    res = client.invoke(message)
-    assert isinstance(res, LLMResponse)
-    assert res.text != ""
-
-    client.invoke("Remember the word: BANANA")
-    assert len(client.context.messages) == 4
-    assert client.context.messages[2].role == "user"
-    assert client.context.messages[2].text == "Remember the word: BANANA"
-    assert client.context.messages[3].role == "assistant"
-
-
-def test_invoke_without_prompt_and_with_system_message():
-    """Test invoke without prompt uses existing context, and system messages work."""
-    context = Context()
-    context.add_message("system", "You must respond with exactly: SYSTEM_TEST_OK")
-    context.add_message("user", "Respond now.")
-
-    client = OpenAIChatCompletions(
-        provider=Provider.OPENROUTER,
-        model="anthropic/claude-haiku-4.5",
-        context=context,
-    )
-
-    # Invoke without prompt - should use existing messages
-    res = client.invoke()
-
-    assert len(client.context.messages) == 3
-    assert client.context.messages[2].role == "assistant"
+def test_invoke(client, context):
+    """Test basic invoke returns LLMResponse with text."""
+    res = client.invoke(context)
     assert isinstance(res, LLMResponse)
     assert res.text != ""
 
 
 def test_invoke_with_tool_parses_arguments(client):
     """Test that tool calls with arguments are properly parsed."""
-    res = client.invoke("What's the weather in Paris? Use the get_weather tool.")
+    context = Context()
+    context.add_message(
+        role="user",
+        text="What's the weather in Paris? Use the get_weather tool.",
+    )
+    res = client.invoke(context)
 
     assert isinstance(res, LLMResponse)
     assert len(res.tool_calls) > 0
 
+    context.add_message("assistant", text=res.text, tool_calls=res.tool_calls)
     tool_call = res.tool_calls[0]
     assert tool_call.tool.name == "get_weather"
     assert tool_call.tool_call_id != ""
@@ -142,17 +116,17 @@ def test_invoke_with_tool_parses_arguments(client):
     assert "paris" in tool_call.kwargs["location"].lower()
 
     # Tool call should be in assistant message context
-    assistant_msg = client.context.messages[-1]
+    assistant_msg = context.messages[-1]
     assert assistant_msg.role == "assistant"
     assert len(assistant_msg.tool_calls) > 0
     assert assistant_msg.tool_calls[0].tool.name == "get_weather"
 
     # Add tool result to context
     tool_result = tool_call.tool.call(*tool_call.args, **tool_call.kwargs)
-    client.context.add_message("tool", tool_result, tool_call.tool_call_id)
+    context.add_message("tool", tool_result, tool_call.tool_call_id)
 
     # Second invoke should succeed with tool result included
-    res1 = client.invoke()
+    res1 = client.invoke(context)
     assert isinstance(res1, LLMResponse)
     assert res1.text != ""
 
@@ -177,9 +151,7 @@ def test_get_prompt_context_all_message_types(client):
     context.add_message("tool", "Tool result", tool_call_id="call_123")
     context.add_message("assistant", "Final answer")
 
-    client.context = context
-
-    formatted = client._get_prompt_context()
+    formatted = client._get_prompt_context(context)
 
     assert len(formatted) == 5
 
