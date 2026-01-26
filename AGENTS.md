@@ -6,6 +6,7 @@ Daystrom is a library built to make powerful composable AI workflows easy to bui
 ## Build & Test Commands
 - Install: `uv sync && uv pip install -e .`
 - Run all tests: `uv run pytest`
+- Run all tests with an HTML coverage report: `uv run pytest --cov src --cov-report html`
 - Run single test file: `uv run pytest tests/integration/components/openrouter/test_chat.py`
 - Run single test: `uv run pytest tests/integration/components/openrouter/test_chat.py::test_invoke`
 - Type check: `uv run pyright`
