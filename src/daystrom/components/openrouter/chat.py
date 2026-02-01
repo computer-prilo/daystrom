@@ -18,11 +18,11 @@ class OpenRouterChat(LLM):
         super().__init__(model=model, provider=Provider.OPENROUTER)
         self.client = OpenRouter(api_key=api_key or self.provider.value.get_api_key())
 
-    def invoke(self, context) -> LLMResponse:
+    def invoke(self, context: Context | None = None) -> LLMResponse:
         response = LLMResponse(text="".join(self.invoke_stream(context)), tool_calls=[])
         return response
 
-    def invoke_stream(self, context: Context):
+    def invoke_stream(self, context: Context | None = None):
         messages = self._get_prompt_context(context)
         res = self.client.chat.send(messages=messages, model=self.model, stream=True)
 
@@ -56,10 +56,13 @@ class OpenRouterChat(LLM):
             self.output_tokens += usage.completion_tokens
             self.input_tokens += usage.prompt_tokens
 
-    def _get_prompt_context(self, context: Context) -> list[OpenRouterMessage]:
+    def _get_prompt_context(self, context: Context | None) -> list[OpenRouterMessage]:
         """
         Returns the messages in the context formatted for OpenRouter API
         """
+        if not context:
+            return []
+
         fmt_messages = []
         for msg in context.messages:
             match msg.role:

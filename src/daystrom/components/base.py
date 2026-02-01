@@ -279,7 +279,5 @@ class Agent(Component[AgentResponse]):
                     )
                     log.exception(f"Tool call failed: {tool_call.tool.name}")
 
-            # res = self.llm.invoke()
-
         agent_res = AgentResponse(text=(res.text if res else ""))
         return agent_res

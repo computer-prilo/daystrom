@@ -77,10 +77,15 @@ class OpenAIChatCompletions(LLM):
             self.output_tokens += usage.completion_tokens
             self.input_tokens += usage.prompt_tokens
 
-    def _get_prompt_context(self, context) -> list[ChatCompletionMessageParam]:
+    def _get_prompt_context(
+        self, context: Context | None = None
+    ) -> list[ChatCompletionMessageParam]:
         """
         Returns the messages in the context formatted for OpenAI API
         """
+        if not context:
+            return []
+
         fmt_messages = []
         for msg in context.messages:
             match msg.role:
