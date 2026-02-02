@@ -78,8 +78,8 @@ class Message:
 
 
 class Context:
-    def __init__(self):
-        self.messages: list[Message] = []
+    def __init__(self, messages: list | None = None):
+        self.messages: list[Message] = messages or []
 
     def add_message(
         self,
@@ -111,7 +111,6 @@ class AgentResponse:
 
 
 class LLM(Component[LLMResponse]):
-    context: Context
     tools: dict[str, Tool]
     provider: Provider
     model: str
@@ -126,16 +125,10 @@ class LLM(Component[LLMResponse]):
         self,
         provider: Provider,
         model: str,
-        context: Context | None = None,
         tools: dict[str, Tool] | None = None,
     ):
         self.provider = provider
         self.model = model
-
-        if context:
-            self.context = context
-        else:
-            self.context = Context()
 
         self.tools = tools or {}
         self.input_tokens: int = 0
@@ -226,19 +219,40 @@ def tool(func):
 
 
 class Agent(Component[AgentResponse]):
+    llm: LLM
+    context: Context
+    max_loops: int
+    tools: dict
+
     def __init__(
-        self, llm: LLM, tools: dict[str, Tool] | None = None, max_loops: int = 30
+        self,
+        llm: LLM,
+        context: Context | None = None,
+        tools: dict[str, Tool] | None = None,
+        max_loops: int = 30,
     ):
         self.llm = llm
+
+        if context:
+            self.context = context
+        else:
+            self.context = Context()
+
         self.max_loops = max_loops
         self.tools = tools or DEFAULT_TOOLS
         self.llm.tools = self.tools
 
     def invoke(self, prompt, *args, **kwargs) -> AgentResponse:
         loop = 0
-        res = self.llm.invoke(prompt)
+        self.context.add_message("user", prompt)
+
+        res = None
         while loop < self.max_loops:
             loop += 1
+            res = self.llm.invoke(self.context)
+            self.context.add_message(
+                "assistant", text=res.text, tool_calls=res.tool_calls
+            )
 
             # if no tools were called, the agent loop is done
             if not res.tool_calls:
@@ -247,25 +261,23 @@ class Agent(Component[AgentResponse]):
             for tool_call in res.tool_calls:
                 try:
                     tool_res = tool_call.tool.call(*tool_call.args, **tool_call.kwargs)
-                    self.llm.context.add_message(
-                        "tool", tool_res, tool_call.tool_call_id
+                    self.context.add_message(
+                        "tool", text=tool_res, tool_call_id=tool_call.tool_call_id
                     )
                 except ToolCallError as e:
-                    self.llm.context.add_message(
+                    self.context.add_message(
                         "tool",
-                        f"Tool call failed! Error: {e.message}",
-                        tool_call.tool_call_id,
+                        text=f"Tool call failed! Error: {e.message}",
+                        tool_call_id=tool_call.tool_call_id,
                     )
                     log.exception(f"Tool call failed: {tool_call.tool.name}")
                 except Exception as e:
-                    self.llm.context.add_message(
+                    self.context.add_message(
                         "tool",
-                        f"Tool call failed! Error: {e}",
-                        tool_call.tool_call_id,
+                        text=f"Tool call failed! Error: {e}",
+                        tool_call_id=tool_call.tool_call_id,
                     )
                     log.exception(f"Tool call failed: {tool_call.tool.name}")
 
-            res = self.llm.invoke()
-
-        agent_res = AgentResponse(text=res.text)
+        agent_res = AgentResponse(text=(res.text if res else ""))
         return agent_res

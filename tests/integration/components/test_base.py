@@ -85,13 +85,8 @@ def test_agent_init(llm, tools):
     assert agent.tools is tools
     assert agent.max_loops == 5
     assert agent.llm.tools is tools
-
-
-def test_agent_default_max_loops(llm, tools):
-    """Test Agent default max_loops value."""
-    agent = Agent(llm=llm, tools=tools)
-
-    assert isinstance(agent.max_loops, int)
+    assert isinstance(agent.context, Context)
+    assert agent.context.messages == []
 
 
 def test_agent_invoke_returns_agent_response(agent):
@@ -112,7 +107,7 @@ def test_agent_invoke_with_tool_call(agent):
     assert "42" in res.text
 
     # Verify tool was called - context should have tool message
-    tool_messages = [msg for msg in agent.llm.context.messages if msg.role == "tool"]
+    tool_messages = [msg for msg in agent.context.messages if msg.role == "tool"]
     assert len(tool_messages) > 0
     assert "42" in tool_messages[0].text
 
@@ -125,7 +120,7 @@ def test_agent_invoke_with_tool_arguments(agent):
     assert res.text != ""
 
     # Verify tool was called with correct arguments
-    tool_messages = [msg for msg in agent.llm.context.messages if msg.role == "tool"]
+    tool_messages = [msg for msg in agent.context.messages if msg.role == "tool"]
     assert len(tool_messages) > 0
     assert "tokyo" in tool_messages[0].text.lower()
 
@@ -141,7 +136,7 @@ def test_agent_invoke_multiple_tool_calls(agent):
     assert "52" in res.text
 
     # Should have at least 2 tool calls
-    tool_messages = [msg for msg in agent.llm.context.messages if msg.role == "tool"]
+    tool_messages = [msg for msg in agent.context.messages if msg.role == "tool"]
     assert len(tool_messages) >= 2
 
 
@@ -152,7 +147,7 @@ def test_agent_invoke_no_tool_needed(agent):
     assert isinstance(res, AgentResponse)
     assert res.text != ""
     # Should have no tool messages
-    tool_messages = [msg for msg in agent.llm.context.messages if msg.role == "tool"]
+    tool_messages = [msg for msg in agent.context.messages if msg.role == "tool"]
     assert len(tool_messages) == 0
 
 
@@ -161,13 +156,13 @@ def test_agent_context_tracking(agent):
     agent.invoke("What is the magic number? Use the get_magic_number tool.")
 
     # Context should have: user message, assistant (with tool call), tool result, final assistant
-    assert len(agent.llm.context.messages) >= 4
+    assert len(agent.context.messages) >= 4
 
     # First message should be user
-    assert agent.llm.context.messages[0].role == "user"
+    assert agent.context.messages[0].role == "user"
 
     # Last message should be assistant (final response)
-    assert agent.llm.context.messages[-1].role == "assistant"
+    assert agent.context.messages[-1].role == "assistant"
 
 
 def test_agent_max_loops_respected(agent):
@@ -181,7 +176,7 @@ def test_agent_max_loops_respected(agent):
 
     assert isinstance(res, AgentResponse)
     # Should have at most 3 tool calls due to max_loops
-    tool_messages = [msg for msg in agent.llm.context.messages if msg.role == "tool"]
+    tool_messages = [msg for msg in agent.context.messages if msg.role == "tool"]
     assert len(tool_messages) <= 3
 
 
@@ -189,13 +184,10 @@ def test_agent_with_custom_context(agent):
     """Test Agent works with LLM that has pre-existing context."""
     context = Context()
     context.add_message("system", "You are a helpful assistant. Always be concise.")
-
-    agent.llm.context = context
+    agent.context = context
 
     res = agent.invoke("What's the magic number? Use the tool.")
 
     assert isinstance(res, AgentResponse)
     assert "42" in res.text
-
-    # System message should still be first
-    assert agent.llm.context.messages[0].role == "system"
+    assert agent.context.messages[0].role == "system"

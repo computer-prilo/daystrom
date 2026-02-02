@@ -26,12 +26,10 @@ class OpenAIChatCompletions(LLM):
         model: str,
         provider: Provider | None = None,
         api_key: str | None = None,
-        context: Context | None = None,
         tools: dict[str, Tool] | None = None,
     ):
         super().__init__(
             model=model,
-            context=context,
             tools=tools or {},
             provider=provider or Provider.OPENAI,
         )
@@ -40,11 +38,8 @@ class OpenAIChatCompletions(LLM):
             api_key=api_key or self.provider.value.get_api_key(),
         )
 
-    def invoke(self, prompt: str | None = None) -> LLMResponse:
-        if prompt:
-            self.context.add_message("user", prompt)
-
-        messages = self._get_prompt_context()
+    def invoke(self, context: Context | None = None) -> LLMResponse:
+        messages = self._get_prompt_context(context)
         completion = self.client.chat.completions.create(
             model=self.model,
             tools=self._get_tool_context(),
@@ -74,9 +69,6 @@ class OpenAIChatCompletions(LLM):
                     "Found unsupported tool call - missing 'function' attribute",
                 )
 
-        self.context.add_message(
-            role="assistant", text=completion_text, tool_calls=tool_calls
-        )
         response = LLMResponse(text=completion_text, tool_calls=tool_calls)
         return response
 
@@ -85,12 +77,17 @@ class OpenAIChatCompletions(LLM):
             self.output_tokens += usage.completion_tokens
             self.input_tokens += usage.prompt_tokens
 
-    def _get_prompt_context(self) -> list[ChatCompletionMessageParam]:
+    def _get_prompt_context(
+        self, context: Context | None = None
+    ) -> list[ChatCompletionMessageParam]:
         """
         Returns the messages in the context formatted for OpenAI API
         """
+        if not context:
+            return []
+
         fmt_messages = []
-        for msg in self.context.messages:
+        for msg in context.messages:
             match msg.role:
                 case "user":
                     fmt_messages.append(

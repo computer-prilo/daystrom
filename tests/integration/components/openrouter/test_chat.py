@@ -1,6 +1,6 @@
 import pytest
 
-from daystrom.components import LLMResponse
+from daystrom.components import Context, LLMResponse
 from daystrom.components.openrouter import OpenRouterChat
 
 
@@ -10,31 +10,36 @@ def client():
 
 
 @pytest.fixture
-def message():
-    return "Give me a short response as a test that API functionality is working"
+def context():
+    context = Context()
+    context.add_message(
+        role="user",
+        text="Give me a short response as a test that API functionality is working",
+    )
+    return context
 
 
-def test_invoke_stream(client, message):
-    res = "".join(client.invoke_stream(message))
+def test_invoke_stream(client, context):
+    res = "".join(client.invoke_stream(context))
     assert isinstance(res, str)
     assert res != ""
 
 
-def test_invoke(client, message):
-    res = client.invoke(message)
+def test_invoke(client, context):
+    res = client.invoke(context)
     assert isinstance(res, LLMResponse)
     assert res.text != ""
 
 
 @pytest.mark.asyncio
-async def test_ainvoke_stream(client, message):
-    res = "".join([chunk async for chunk in client.ainvoke_stream(message)])
+async def test_ainvoke_stream(client, context):
+    res = "".join([chunk async for chunk in client.ainvoke_stream(context)])
     assert isinstance(res, str)
     assert res != ""
 
 
 @pytest.mark.asyncio
-async def test_ainvoke(client, message):
-    res = await client.ainvoke(message)
-    assert isinstance(res, str)
+async def test_ainvoke(client, context):
+    res = await client.ainvoke(context)
+    assert isinstance(res, LLMResponse)
     assert res != ""
