@@ -41,5 +41,5 @@ async def test_ainvoke_stream(client, context):
 @pytest.mark.asyncio
 async def test_ainvoke(client, context):
     res = await client.ainvoke(context)
-    assert isinstance(res, str)
+    assert isinstance(res, LLMResponse)
     assert res != ""
