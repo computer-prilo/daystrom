@@ -34,10 +34,14 @@ class OpenRouterChat(LLM):
                 response_content += content_chunk
                 yield content_chunk
 
-    async def ainvoke(self, context: Context) -> str:
-        return "".join([chunk async for chunk in self.ainvoke_stream(context)])
+    async def ainvoke(self, context: Context | None = None) -> LLMResponse:
+        response = LLMResponse(
+            text="".join([chunk async for chunk in self.ainvoke_stream(context)]),
+            tool_calls=[],
+        )
+        return response
 
-    async def ainvoke_stream(self, context: Context):
+    async def ainvoke_stream(self, context: Context | None = None):
         messages = self._get_prompt_context(context)
         res = await self.client.chat.send_async(
             messages=messages, model=self.model, stream=True

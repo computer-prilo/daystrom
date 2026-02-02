@@ -68,11 +68,6 @@ def client():
     )
 
 
-# @pytest.fixture(scope="module")
-# def message():
-#    return "Give me a short response as a test that API functionality is working. Do NOT give an empty response and do NOT call any tools."
-
-
 @pytest.fixture
 def context():
     context = Context()

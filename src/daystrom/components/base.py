@@ -78,8 +78,8 @@ class Message:
 
 
 class Context:
-    def __init__(self):
-        self.messages: list[Message] = []
+    def __init__(self, messages: list | None = None):
+        self.messages: list[Message] = messages or []
 
     def add_message(
         self,
