@@ -19,6 +19,9 @@ dependencies = [
     "openrouter>=0.1.1",
 ]
 
+[project.optional-dependencies]
+telegram = ["python-telegram-bot>=21.0"]
+
 [project.urls]
 Homepage = "https://github.com/prilosac/daystrom"
 

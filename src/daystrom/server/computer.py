@@ -1,0 +1,54 @@
+import asyncio
+import logging
+import signal
+from typing import Callable
+
+from daystrom.components.base import Agent
+
+from .transports.base import Transport
+
+log = logging.getLogger(__name__)
+
+
+class Computer:
+    def __init__(self, agent_factory: Callable[[], Agent]):
+        self.agent_factory = agent_factory
+        self.transports: list[Transport] = []
+        self.sessions: dict[str, Agent] = {}
+        self._stop_event = asyncio.Event()
+
+    def register(self, transport: Transport):
+        transport.computer = self
+        self.transports.append(transport)
+
+    def get_or_create_agent(self, session_id: str) -> Agent:
+        if session_id not in self.sessions:
+            self.sessions[session_id] = self.agent_factory()
+        return self.sessions[session_id]
+
+    async def handle_message(self, session_id: str, text: str) -> str:
+        if text.strip() == "/new-session":
+            self.sessions.pop(session_id, None)
+            return "Session reset."
+
+        agent = self.get_or_create_agent(session_id)
+        response = await asyncio.to_thread(agent.invoke, text)
+        return response.text
+
+    def run(self):
+        asyncio.run(self._run())
+
+    async def _run(self):
+        loop = asyncio.get_running_loop()
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            loop.add_signal_handler(sig, self._stop_event.set)
+
+        for transport in self.transports:
+            await transport.start()
+
+        log.info("Computer is running")
+        await self._stop_event.wait()
+        log.info("Shutting down")
+
+        for transport in self.transports:
+            await transport.stop()
