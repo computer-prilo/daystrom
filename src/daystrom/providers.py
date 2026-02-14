@@ -91,3 +91,7 @@ class Provider(Enum):
         display_name="OpenRouter",
         base_url="https://openrouter.ai/api/v1",
     )
+    AWS_BEDROCK = ProviderMetadata(
+        name="aws-bedrock",
+        display_name="AWS Bedrock",
+    )
