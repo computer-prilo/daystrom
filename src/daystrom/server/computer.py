@@ -31,7 +31,8 @@ class Computer:
     async def handle_message(self, session_id: str, text: str) -> str:
         log.info(f"Received message for session {session_id}: {text[50:] + "..." if len(text) > 50 else ""}")
 
-        match text.strip():
+        text = text.strip()
+        match text:
             case "/new-session":
                 self.sessions.pop(session_id, None)
                 return "Session reset."
