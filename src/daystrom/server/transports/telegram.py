@@ -23,6 +23,10 @@ class TelegramTransport(Transport):
 
     async def start(self):
         self._app = Application.builder().token(self.token).build()
+
+        if not self._app or not self._app.updater:
+            raise RuntimeError("Failed to create Telegram application")
+
         self._app.add_handler(MessageHandler(filters.TEXT, self._on_message))
         await self._app.initialize()
         await self._app.start()
@@ -30,14 +34,14 @@ class TelegramTransport(Transport):
         log.info("Telegram transport started")
 
     async def stop(self):
-        if self._app:
+        if self._app and self._app.updater:
             await self._app.updater.stop()
             await self._app.stop()
             await self._app.shutdown()
             log.info("Telegram transport stopped")
 
     async def _on_message(self, update: Update, _context):
-        if not update.message or not update.message.text:
+        if not update.message or not update.message.text or not update.effective_chat:
             return
 
         session_id = f"telegram:{update.effective_chat.id}"
