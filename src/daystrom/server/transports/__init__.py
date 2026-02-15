@@ -1,4 +1,10 @@
 from .base import Transport
-from .telegram import TelegramTransport
 
-__all__ = ["Transport", "TelegramTransport"]
+__all__ = ["Transport"]
+
+try:
+    from .telegram import TelegramTransport
+except ImportError:
+    TelegramTransport = None  # Optional; not available without telegram extra
+else:
+    __all__.append("TelegramTransport")
