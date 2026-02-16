@@ -44,16 +44,15 @@ class Computer:
                     "glm": "z-ai/glm-5",
                 }
                 if args:
-                    model = args[0]
-                    def agent_factory():
-                        llm = OpenAIChatCompletions(provider=Provider.OPENROUTER, model=model_dict[model])
-                        agent = Agent(llm=llm)
-                        return agent
-
-                    self.agent_factory = agent_factory
+                    model = model_dict.get(args[0])
+                    if model:
+                        def agent_factory():
+                            llm = OpenAIChatCompletions(provider=Provider.OPENROUTER, model=model)
+                            agent = Agent(llm=llm)
+                            return agent
+                        self.agent_factory = agent_factory
 
                 self.sessions.pop(session_id, None)
-                #self.sessions.pop(session_id)
                 return "Session reset."
 
         agent = self.get_or_create_agent(session_id)
