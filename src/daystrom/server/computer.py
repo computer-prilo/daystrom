@@ -29,59 +29,32 @@ class Computer:
         return self.sessions[session_id]
 
     async def handle_message(self, session_id: str, text: str) -> str:
-        log.info(f"Received message for session {session_id}: {text[50:] + "..." if len(text) > 50 else ""}")
+        log.info(f"Received message for session {session_id}: {text[:50] + "..." if len(text) > 50 else ""}")
 
         text = text.strip()
-        match text:
+        command, args = text.split(" ")
+        #match text:
+        match command:
             case "/new-session":
-                self.sessions.pop(session_id, None)
-                return "Session reset."
-            case "/new-session-claude":
-                def agent_factory():
-                    llm = OpenAIChatCompletions(provider=Provider.OPENROUTER, model="anthropic/claude-opus-4.6")
-                    agent = Agent(llm=llm)
-                    return agent
+                model_dict = {
+                    "claude": "anthropic/claude-opus-4.6",
+                    "gpt": "openai/gpt-5.2",
+                    "minimax": "minimax/minimax-m2.5",
+                    "kimi": "moonshotai/kimi-k2.5",
+                    "glm": "z-ai/glm-5",
+                }
+                if args:
+                    model = args[0]
+                    def agent_factory():
+                        llm = OpenAIChatCompletions(provider=Provider.OPENROUTER, model=model_dict[model])
+                        agent = Agent(llm=llm)
+                        return agent
 
-                self.agent_factory = agent_factory
-                self.sessions.pop(session_id, None)
-                return "Session reset."
-            case "/new-session-gpt":
-                def agent_factory():
-                    llm = OpenAIChatCompletions(provider=Provider.OPENROUTER, model="openai/gpt-5.2")
-                    agent = Agent(llm=llm)
-                    return agent
+                    self.agent_factory = agent_factory
 
-                self.agent_factory = agent_factory
                 self.sessions.pop(session_id, None)
+                #self.sessions.pop(session_id)
                 return "Session reset."
-            case "/new-session-minimax":
-                def agent_factory():
-                    llm = OpenAIChatCompletions(provider=Provider.OPENROUTER, model="minimax/minimax-m2.5")
-                    agent = Agent(llm=llm)
-                    return agent
-
-                self.agent_factory = agent_factory
-                self.sessions.pop(session_id, None)
-                return "Session reset."
-            case "/new-session-kimi":
-                def agent_factory():
-                    llm = OpenAIChatCompletions(provider=Provider.OPENROUTER, model="moonshotai/kimi-k2.5")
-                    agent = Agent(llm=llm)
-                    return agent
-
-                self.agent_factory = agent_factory
-                self.sessions.pop(session_id, None)
-                return "Session reset."
-            case "/new-session-glm":
-                def agent_factory():
-                    llm = OpenAIChatCompletions(provider=Provider.OPENROUTER, model="z-ai/glm-5")
-                    agent = Agent(llm=llm)
-                    return agent
-
-                self.agent_factory = agent_factory
-                self.sessions.pop(session_id, None)
-                return "Session reset."
-
 
         agent = self.get_or_create_agent(session_id)
         response = await asyncio.to_thread(agent.invoke, text)
