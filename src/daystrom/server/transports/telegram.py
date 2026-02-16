@@ -6,7 +6,7 @@ try:
 except ImportError:
     raise ImportError(
         "python-telegram-bot is required for TelegramTransport. "
-        "Install with: pip install daystrom[telegram]"
+        "Install with: uv add daystrom[telegram] (or run with --extra telegram)"
     )
 
 from .base import Transport
