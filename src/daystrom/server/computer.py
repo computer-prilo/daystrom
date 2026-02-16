@@ -31,7 +31,7 @@ class Computer:
     async def handle_message(self, session_id: str, text: str) -> str:
         log.info(f"Received message for session {session_id}: {text[:50] + "..." if len(text) > 50 else ""}")
 
-        parts = text.strip().split(" ")
+        parts = text.strip().split()
         command = parts[0] if parts else ""
         args = parts[1:]
         match command:
