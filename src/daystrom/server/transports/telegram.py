@@ -71,4 +71,7 @@ def _split_message(text: str) -> list[str]:
         chunks.append(text[:split_at])
         text = text[split_at:].lstrip("\n")
 
+    if not chunks:
+        chunks.append("Something went wrong, no response from the Computer")
+
     return chunks
