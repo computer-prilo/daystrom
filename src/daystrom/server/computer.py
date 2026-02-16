@@ -51,6 +51,7 @@ class Computer:
                             agent = Agent(llm=llm)
                             return agent
                         self.agent_factory = agent_factory
+                        log.info(f"Agent factory reset with model: {model}")
 
                 self.sessions.pop(session_id, None)
                 return "Session reset."
