@@ -68,12 +68,19 @@ class Computer:
         for sig in (signal.SIGINT, signal.SIGTERM):
             loop.add_signal_handler(sig, self._stop_event.set)
 
-        for transport in self.transports:
-            await transport.start()
+        started_transports: list[Transport] = []
+        try:
+            for transport in self.transports:
+                await transport.start()
+                started_transports.append(transport)
 
-        log.info("Computer is running")
-        await self._stop_event.wait()
-        log.info("Shutting down")
-
-        for transport in self.transports:
-            await transport.stop()
+            log.info("Computer is running")
+            await self._stop_event.wait()
+            log.info("Shutting down")
+        finally:
+            # Ensure all started transports are stopped, even if startup or run fails.
+            for transport in reversed(started_transports):
+                try:
+                    await transport.stop()
+                except Exception:
+                    log.exception("Error while stopping transport %r", transport)
