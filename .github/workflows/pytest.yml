@@ -29,5 +29,5 @@ jobs:
       env:
         OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       run: |
-        uv run pytest --cov src
+        uv run --extra telegram pytest --cov src
       
