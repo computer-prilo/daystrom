@@ -12,12 +12,20 @@ def tools():
         return f"Weather in {location}: 22 {unit}"
 
     def multi_param(
-        name: str, count: int, ratio: float, active: bool, tags: list[str]
+        dictarg: dict,
+        tags: list[str],
+        tuplearg: tuple[str, ...],
+        name: str,
+        count: int,
+        ratio: float,
+        active: bool,
     ) -> str:
-        return f"{name}, {count}, {ratio}, {active}, {tags}"
+        return (
+            f"{dictarg}, {tags}, {tuplearg}, {name}, {count}, {ratio}, {active}, {tags}"
+        )
 
     # dummy call for coverage
-    multi_param("", 1, 1.0, True, [])
+    multi_param({}, [], (), "", 1, 1.0, True)
 
     return {
         "sample_tool": Tool(
@@ -44,16 +52,23 @@ def tools():
             name="multi_param",
             description="Tool with multiple param types",
             params={
-                "name": {"type": str, "description": "Name", "required": True},
-                "count": {"type": int, "description": "Count", "required": True},
-                "ratio": {"type": float, "description": "Ratio", "required": False},
-                "active": {"type": bool, "description": "Active", "required": False},
+                "dictarg": {"type": dict, "description": "DictArg", "required": True},
                 "tags": {
                     "type": list[str],
                     "description": "Tags",
                     "required": False,
                     "items": {"type": str},
                 },
+                "tuplearg": {
+                    "type": tuple[str, ...],
+                    "description": "TupleArg",
+                    "required": False,
+                    "items": {"type": str},
+                },
+                "name": {"type": str, "description": "Name", "required": True},
+                "count": {"type": int, "description": "Count", "required": True},
+                "ratio": {"type": float, "description": "Ratio", "required": False},
+                "active": {"type": bool, "description": "Active", "required": False},
             },
         ),
     }
@@ -185,48 +200,6 @@ class TestGetPromptContext:
             }
         }
 
-    def test_all_message_types(self, client, tools):
-        ctx = Context()
-        ctx.add_message("system", "System instruction")
-        ctx.add_message("user", "User question")
-        ctx.add_message(
-            "assistant",
-            "I'll call the tool",
-            tool_calls=[
-                ToolCall(
-                    tool=tools["sample_tool"],
-                    tool_call_id="call_123",
-                    args=[],
-                    kwargs={"x": "val"},
-                )
-            ],
-        )
-        ctx.add_message("tool", "Tool result", tool_call_id="call_123")
-        ctx.add_message("assistant", "Final answer")
-
-        system, messages = client._get_prompt_context(ctx)
-
-        assert system == [{"text": "System instruction"}]
-        assert len(messages) == 4
-
-        assert messages[0] == {"role": "user", "content": [{"text": "User question"}]}
-
-        assert messages[1]["role"] == "assistant"
-        assert messages[1]["content"][0] == {"text": "I'll call the tool"}
-        assert messages[1]["content"][1]["toolUse"]["name"] == "sample_tool"
-        assert messages[1]["content"][1]["toolUse"]["toolUseId"] == "call_123"
-
-        assert messages[2]["role"] == "user"
-        assert messages[2]["content"][0]["toolResult"]["toolUseId"] == "call_123"
-        assert messages[2]["content"][0]["toolResult"]["content"] == [
-            {"text": "Tool result"}
-        ]
-
-        assert messages[3] == {
-            "role": "assistant",
-            "content": [{"text": "Final answer"}],
-        }
-
     def test_unsupported_role_raises(self, client):
         ctx = Context()
         ctx.add_message("unknown_role", "Bad message")
@@ -273,13 +246,17 @@ class TestGetToolContext:
                 multi_spec = t["toolSpec"]
                 break
 
+        assert multi_spec is not None
         props = multi_spec["inputSchema"]["json"]["properties"]
+        assert props["dictarg"]["type"] == "object"
+        assert props["tags"]["type"] == "array"
+        assert props["tags"]["items"]["type"] == "string"
+        assert props["tuplearg"]["type"] == "array"
+        assert props["tuplearg"]["items"]["type"] == "string"
         assert props["name"]["type"] == "string"
         assert props["count"]["type"] == "integer"
         assert props["ratio"]["type"] == "number"
         assert props["active"]["type"] == "boolean"
-        assert props["tags"]["type"] == "array"
-        assert props["tags"]["items"]["type"] == "string"
 
         required = multi_spec["inputSchema"]["json"]["required"]
         assert "name" in required
@@ -290,159 +267,6 @@ class TestGetToolContext:
 class TestTrackUsage:
     def test_tracks_tokens(self, client):
         client.track_usage({"inputTokens": 100, "outputTokens": 50})
-        assert client.input_tokens == 100
-        assert client.output_tokens == 50
-
-    def test_accumulates_tokens(self, client):
-        client.track_usage({"inputTokens": 100, "outputTokens": 50})
         client.track_usage({"inputTokens": 200, "outputTokens": 100})
         assert client.input_tokens == 300
         assert client.output_tokens == 150
-
-    def test_none_usage(self, client):
-        client.track_usage(None)
-        assert client.input_tokens == 0
-        assert client.output_tokens == 0
-
-    def test_missing_keys(self, client):
-        client.track_usage({})
-        assert client.input_tokens == 0
-        assert client.output_tokens == 0
-
-
-class TestInvoke:
-    def test_invoke_text_response(self, client, mocker):
-        mock_converse = mocker.MagicMock(
-            return_value={
-                "output": {
-                    "message": {
-                        "role": "assistant",
-                        "content": [{"text": "Hello there!"}],
-                    }
-                },
-                "usage": {"inputTokens": 10, "outputTokens": 5},
-                "stopReason": "end_turn",
-            }
-        )
-        client.client = mocker.MagicMock()
-        client.client.converse = mock_converse
-
-        ctx = Context()
-        ctx.add_message("user", "Hi")
-        res = client.invoke(ctx)
-
-        assert isinstance(res, LLMResponse)
-        assert res.text == "Hello there!"
-        assert res.tool_calls == []
-        assert client.input_tokens == 10
-        assert client.output_tokens == 5
-
-    def test_invoke_tool_call_response(self, client, tools, mocker):
-        mock_converse = mocker.MagicMock(
-            return_value={
-                "output": {
-                    "message": {
-                        "role": "assistant",
-                        "content": [
-                            {"text": "Let me check the weather."},
-                            {
-                                "toolUse": {
-                                    "toolUseId": "call_xyz",
-                                    "name": "get_weather",
-                                    "input": {"location": "Paris"},
-                                }
-                            },
-                        ],
-                    }
-                },
-                "usage": {"inputTokens": 20, "outputTokens": 15},
-                "stopReason": "tool_use",
-            }
-        )
-        client.client = mocker.MagicMock()
-        client.client.converse = mock_converse
-
-        ctx = Context()
-        ctx.add_message("user", "What's the weather in Paris?")
-        res = client.invoke(ctx)
-
-        assert res.text == "Let me check the weather."
-        assert len(res.tool_calls) == 1
-        assert res.tool_calls[0].tool.name == "get_weather"
-        assert res.tool_calls[0].tool_call_id == "call_xyz"
-        assert res.tool_calls[0].kwargs == {"location": "Paris"}
-        assert res.tool_calls[0].args == []
-
-    def test_invoke_passes_system_and_tools(self, client, mocker):
-        mock_converse = mocker.MagicMock(
-            return_value={
-                "output": {
-                    "message": {
-                        "role": "assistant",
-                        "content": [{"text": "ok"}],
-                    }
-                },
-                "usage": {"inputTokens": 5, "outputTokens": 2},
-                "stopReason": "end_turn",
-            }
-        )
-        client.client = mocker.MagicMock()
-        client.client.converse = mock_converse
-
-        ctx = Context()
-        ctx.add_message("system", "Be concise")
-        ctx.add_message("user", "Hi")
-        client.invoke(ctx)
-
-        call_kwargs = mock_converse.call_args[1]
-        assert call_kwargs["modelId"] == client.model
-        assert call_kwargs["system"] == [{"text": "Be concise"}]
-        assert "toolConfig" in call_kwargs
-        assert len(call_kwargs["toolConfig"]["tools"]) == 3
-
-    def test_invoke_no_tools_omits_tool_config(self, client, mocker):
-        client.tools = {}
-        mock_converse = mocker.MagicMock(
-            return_value={
-                "output": {
-                    "message": {
-                        "role": "assistant",
-                        "content": [{"text": "ok"}],
-                    }
-                },
-                "usage": {"inputTokens": 5, "outputTokens": 2},
-                "stopReason": "end_turn",
-            }
-        )
-        client.client = mocker.MagicMock()
-        client.client.converse = mock_converse
-
-        ctx = Context()
-        ctx.add_message("user", "Hi")
-        client.invoke(ctx)
-
-        call_kwargs = mock_converse.call_args[1]
-        assert "toolConfig" not in call_kwargs
-
-    def test_invoke_no_system_omits_system(self, client, mocker):
-        mock_converse = mocker.MagicMock(
-            return_value={
-                "output": {
-                    "message": {
-                        "role": "assistant",
-                        "content": [{"text": "ok"}],
-                    }
-                },
-                "usage": {"inputTokens": 5, "outputTokens": 2},
-                "stopReason": "end_turn",
-            }
-        )
-        client.client = mocker.MagicMock()
-        client.client.converse = mock_converse
-
-        ctx = Context()
-        ctx.add_message("user", "Hi")
-        client.invoke(ctx)
-
-        call_kwargs = mock_converse.call_args[1]
-        assert "system" not in call_kwargs

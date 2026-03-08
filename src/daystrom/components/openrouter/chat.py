@@ -25,11 +25,12 @@ class OpenRouterChat(LLM):
     def invoke_stream(self, context: Context | None = None):
         messages = self._get_prompt_context(context)
         res = self.client.chat.send(messages=messages, model=self.model, stream=True)
+        # breakpoint()
 
         response_content = ""
         for event in res:
-            if isinstance(event.choices[0].delta.content, str):
-                self.track_usage(event.usage)
+            self.track_usage(event.usage)
+            if event.choices and isinstance(event.choices[0].delta.content, str):
                 content_chunk = event.choices[0].delta.content
                 response_content += content_chunk
                 yield content_chunk
@@ -49,8 +50,8 @@ class OpenRouterChat(LLM):
 
         response_content = ""
         async for event in res:
-            if isinstance(event.choices[0].delta.content, str):
-                self.track_usage(event.usage)
+            self.track_usage(event.usage)
+            if event.choices and isinstance(event.choices[0].delta.content, str):
                 content_chunk = event.choices[0].delta.content
                 response_content += content_chunk
                 yield content_chunk

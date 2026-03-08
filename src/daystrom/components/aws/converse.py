@@ -1,10 +1,44 @@
 import os
-from typing import get_origin
+from dataclasses import asdict, dataclass
+from typing import Literal, get_origin
 
 import boto3
 
 from daystrom import Provider
 from daystrom.components import LLM, Context, LLMResponse, Tool, ToolCall
+from daystrom.exceptions import InvalidComponentError
+
+
+@dataclass
+class AwsAccessKeyAuth:
+    kind: Literal["access_key"] = "access_key"
+    aws_access_key_id: str = ""
+    aws_secret_access_key: str = ""
+    aws_session_token: str | None = None
+    region_name: str = ""
+
+    def get_auth_dict(self) -> dict:
+        auth_dict = asdict(self)
+        {k: v for k, v in auth_dict.items() if k != "kind" and v is not None}
+        return auth_dict
+
+
+@dataclass
+class AwsBearerTokenAuth:
+    kind: Literal["bearer_token"] = "bearer_token"
+    aws_bearer_token_bedrock: str = ""
+    region_name: str = ""
+
+    def get_auth_dict(self) -> dict:
+        auth_dict = asdict(self)
+        {k: v for k, v in auth_dict.items() if k != "kind" and v is not None}
+        return auth_dict
+
+
+@dataclass
+class AwsFailedAuth:
+    kind: Literal["failed"] = "failed"
+    message: str = ""
 
 
 class BedrockConverse(LLM):
@@ -15,6 +49,7 @@ class BedrockConverse(LLM):
         aws_access_key_id: str | None = None,
         aws_secret_access_key: str | None = None,
         aws_session_token: str | None = None,
+        aws_bearer_token_bedrock: str | None = None,
         tools: dict[str, Tool] | None = None,
     ):
         super().__init__(
@@ -22,13 +57,19 @@ class BedrockConverse(LLM):
             tools=tools or {},
             provider=Provider.AWS_BEDROCK,
         )
+
+        auth_obj = self.get_auth(
+            region_name,
+            aws_access_key_id,
+            aws_secret_access_key,
+            aws_session_token,
+            aws_bearer_token_bedrock,
+        )
+        if auth_obj.kind == "failed":
+            raise InvalidComponentError(self.__class__.__name__, auth_obj.message)
         self.client = boto3.client(
             "bedrock-runtime",
-            region_name=region_name or os.getenv("AWS_DEFAULT_REGION", "us-east-1"),
-            aws_access_key_id=aws_access_key_id or os.getenv("AWS_ACCESS_KEY_ID"),
-            aws_secret_access_key=aws_secret_access_key
-            or os.getenv("AWS_SECRET_ACCESS_KEY"),
-            aws_session_token=aws_session_token or os.getenv("AWS_SESSION_TOKEN"),
+            **auth_obj.get_auth_dict(),
         )
 
     def invoke(self, context: Context | None = None) -> LLMResponse:
@@ -103,9 +144,7 @@ class BedrockConverse(LLM):
                     system_messages.append({"text": msg.text})
                     i += 1
                 case "user":
-                    messages.append(
-                        {"role": "user", "content": [{"text": msg.text}]}
-                    )
+                    messages.append({"role": "user", "content": [{"text": msg.text}]})
                     i += 1
                 case "assistant":
                     content: list[dict] = []
@@ -127,8 +166,7 @@ class BedrockConverse(LLM):
                     # Group consecutive tool messages into one user message
                     tool_results: list[dict] = []
                     while (
-                        i < len(context.messages)
-                        and context.messages[i].role == "tool"
+                        i < len(context.messages) and context.messages[i].role == "tool"
                     ):
                         tool_msg = context.messages[i]
                         tool_results.append(
@@ -199,3 +237,37 @@ class BedrockConverse(LLM):
             params["required"] = required_params
 
         return params
+
+    def get_auth(
+        self,
+        region,
+        aws_access_key_id,
+        aws_secret_access_key,
+        aws_session_token,
+        aws_bearer_token_bedrock,
+    ) -> AwsAccessKeyAuth | AwsBearerTokenAuth | AwsFailedAuth:
+        region = (
+            region
+            or os.getenv("AWS_REGION")
+            or os.getenv("AWS_DEFAULT_REGION")
+            or "us-west-2"
+        )
+
+        bearer_token = aws_bearer_token_bedrock or os.getenv("AWS_BEARER_TOKEN_BEDROCK")
+        if bearer_token:
+            return AwsBearerTokenAuth(
+                aws_bearer_token_bedrock=bearer_token,
+                region_name=region,
+            )
+        access_key_id = aws_access_key_id or os.getenv("AWS_ACCESS_KEY_ID")
+        secret_access_key = aws_secret_access_key or os.getenv("AWS_SECRET_ACCESS_KEY")
+        if access_key_id and secret_access_key:
+            return AwsAccessKeyAuth(
+                aws_access_key_id=access_key_id,
+                aws_secret_access_key=secret_access_key,
+                aws_session_token=aws_session_token or os.getenv("AWS_SESSION_TOKEN"),
+                region_name=region,
+            )
+        return AwsFailedAuth(
+            message="One of the following must be provided, neither was found:\n\n1. AWS_BEARER_TOKEN_BEDROCK\n2. AWS_ACCESS_KEY_ID + AWS_SECRET_KEY_ID"
+        )

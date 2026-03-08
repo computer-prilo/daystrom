@@ -25,6 +25,7 @@ class ProviderMetadata:
     name: str
     display_name: str
     base_url: str | None
+    models: dict[str, ModelMetadata]
     env_names: list[str]
 
     def __init__(
@@ -72,6 +73,11 @@ class ProviderMetadata:
         return data
 
     def get_api_key(self):
+        """
+        For straightforward providers that just need an API key, this gets the first one found in the list from models.dev
+
+        More complicated providers (e.g. AWS Bedrock) will need to manage this in their own component
+        """
         api_key = None
         for env_name in self.env_names:
             api_key = os.getenv(env_name)
@@ -92,6 +98,6 @@ class Provider(Enum):
         base_url="https://openrouter.ai/api/v1",
     )
     AWS_BEDROCK = ProviderMetadata(
-        name="aws-bedrock",
+        name="amazon-bedrock",
         display_name="AWS Bedrock",
     )
