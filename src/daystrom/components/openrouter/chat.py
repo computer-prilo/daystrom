@@ -71,10 +71,12 @@ class OpenRouterChat(LLM):
         for msg in context.messages:
             match msg.role:
                 case "user":
-                    fmt_messages.append(UserMessage(content=msg.text))
+                    fmt_messages.append(UserMessage(role=msg.role, content=msg.text))
                 case "assistant":
-                    fmt_messages.append(AssistantMessage(content=msg.text))
+                    fmt_messages.append(
+                        AssistantMessage(role=msg.role, content=msg.text)
+                    )
                 case "system":
-                    fmt_messages.append(SystemMessage(content=msg.text))
+                    fmt_messages.append(SystemMessage(role=msg.role, content=msg.text))
 
         return fmt_messages
