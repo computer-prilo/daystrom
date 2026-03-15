@@ -207,7 +207,7 @@ class BedrockConverse(LLM):
             tool_spec = {
                 "toolSpec": {
                     "name": tool.name,
-                    "description": tool.description,
+                    "description": tool.description or tool.name,
                     "inputSchema": {"json": self._format_tool_params(tool)},
                 }
             }

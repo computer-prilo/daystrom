@@ -7,11 +7,6 @@ from daystrom.exceptions import ToolCallError
 
 
 @tool
-def testdict(a: dict, b: list[str]) -> str:
-    return f"{a} {b}"
-
-
-@tool
 def web_fetch(url: str, format: str = "markdown") -> str:
     """Fetches content from a given URL.
 
