@@ -6,7 +6,7 @@ FSL-1.1-MIT
 
 ## Notice
 
-Copyright 2025 Leme Tech
+Copyright 2025-2026 Leme Tech
 
 ## Terms and Conditions
 
