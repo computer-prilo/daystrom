@@ -28,6 +28,7 @@ jobs:
     - name: Test with pytest
       env:
         OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
       run: |
         uv run --all-extras pytest --cov src
-      
+
