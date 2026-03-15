@@ -264,6 +264,82 @@ class TestGetToolContext:
         assert "ratio" not in required
 
 
+class TestToolRequests:
+    def test_invoke_no_tools_omits_tool_config(self, client, mocker):
+        client.tools = {}
+        mock_converse = mocker.MagicMock(
+            return_value={
+                "output": {
+                    "message": {
+                        "role": "assistant",
+                        "content": [{"text": "ok"}],
+                    }
+                },
+                "usage": {"inputTokens": 5, "outputTokens": 2},
+                "stopReason": "end_turn",
+            }
+        )
+        client.client = mocker.MagicMock()
+        client.client.converse = mock_converse
+
+        ctx = Context()
+        ctx.add_message("user", "Hi")
+        client.invoke(ctx)
+
+        call_kwargs = mock_converse.call_args[1]
+        assert "toolConfig" not in call_kwargs
+
+    def test_invoke_no_system_omits_system(self, client, mocker):
+        mock_converse = mocker.MagicMock(
+            return_value={
+                "output": {
+                    "message": {
+                        "role": "assistant",
+                        "content": [{"text": "ok"}],
+                    }
+                },
+                "usage": {"inputTokens": 5, "outputTokens": 2},
+                "stopReason": "end_turn",
+            }
+        )
+        client.client = mocker.MagicMock()
+        client.client.converse = mock_converse
+
+        ctx = Context()
+        ctx.add_message("user", "Hi")
+        client.invoke(ctx)
+
+        call_kwargs = mock_converse.call_args[1]
+        assert "system" not in call_kwargs
+
+    def test_invoke_passes_system_and_tools(self, client, mocker):
+        mock_converse = mocker.MagicMock(
+            return_value={
+                "output": {
+                    "message": {
+                        "role": "assistant",
+                        "content": [{"text": "ok"}],
+                    }
+                },
+                "usage": {"inputTokens": 5, "outputTokens": 2},
+                "stopReason": "end_turn",
+            }
+        )
+        client.client = mocker.MagicMock()
+        client.client.converse = mock_converse
+
+        ctx = Context()
+        ctx.add_message("system", "Be concise")
+        ctx.add_message("user", "Hi")
+        client.invoke(ctx)
+
+        call_kwargs = mock_converse.call_args[1]
+        assert call_kwargs["modelId"] == client.model
+        assert call_kwargs["system"] == [{"text": "Be concise"}]
+        assert "toolConfig" in call_kwargs
+        assert len(call_kwargs["toolConfig"]["tools"]) == 3
+
+
 class TestTrackUsage:
     def test_tracks_tokens(self, client):
         client.track_usage({"inputTokens": 100, "outputTokens": 50})

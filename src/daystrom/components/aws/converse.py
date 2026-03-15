@@ -3,6 +3,7 @@ from dataclasses import asdict, dataclass
 from typing import Literal, get_origin
 
 import boto3
+from botocore.config import Config
 
 from daystrom import Provider
 from daystrom.components import LLM, Context, LLMResponse, Tool, ToolCall
@@ -12,6 +13,7 @@ from daystrom.exceptions import InvalidComponentError
 @dataclass
 class AwsAccessKeyAuth:
     kind: Literal["access_key"] = "access_key"
+    config: Config = Config(signature_version="v4")
     aws_access_key_id: str = ""
     aws_secret_access_key: str = ""
     aws_session_token: str | None = None
@@ -19,7 +21,10 @@ class AwsAccessKeyAuth:
 
     def get_auth_dict(self) -> dict:
         auth_dict = asdict(self)
-        {k: v for k, v in auth_dict.items() if k != "kind" and v is not None}
+        auth_dict = {
+            k: v for k, v in auth_dict.items() if k != "kind" and v is not None
+        }
+        # breakpoint()
         return auth_dict
 
 
@@ -31,7 +36,14 @@ class AwsBearerTokenAuth:
 
     def get_auth_dict(self) -> dict:
         auth_dict = asdict(self)
-        {k: v for k, v in auth_dict.items() if k != "kind" and v is not None}
+        # boto3.client doesn't accept aws_bearer_token_bedrock as a direct
+        # arg like it does access and secret keys, so we have to omit it
+        # here and let it pull it from the env
+        auth_dict = {
+            k: v
+            for k, v in auth_dict.items()
+            if k != "kind" and k != "aws_bearer_token_bedrock" and v is not None
+        }
         return auth_dict
 
 
@@ -269,5 +281,5 @@ class BedrockConverse(LLM):
                 region_name=region,
             )
         return AwsFailedAuth(
-            message="One of the following must be provided, neither was found:\n\n1. AWS_BEARER_TOKEN_BEDROCK\n2. AWS_ACCESS_KEY_ID + AWS_SECRET_KEY_ID"
+            message="One of the following must be provided, neither was found:\n\n1. AWS_BEARER_TOKEN_BEDROCK\n2. AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY"
         )
