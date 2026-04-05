@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Generic, TypeVar
 
 from daystrom import Provider
-from daystrom.components.tool_util import DEFAULT_TOOLS, Tool
+from daystrom.components.tool_util import CUSTOM_TOOLS, DEFAULT_TOOLS, Tool
 from daystrom.exceptions import ToolCallError
 
 ComponentResponseT = TypeVar("ComponentResponseT")
@@ -168,7 +168,10 @@ class Agent(Component[AgentResponse]):
             self.context = Context()
 
         self.max_loops = max_loops
-        self.tools = tools or DEFAULT_TOOLS
+        if not tools:
+            tools = DEFAULT_TOOLS
+            tools.update(CUSTOM_TOOLS)
+        self.tools = tools
         self.llm.tools = self.tools
 
     def invoke(self, prompt, *args, **kwargs) -> AgentResponse:

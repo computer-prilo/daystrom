@@ -6,7 +6,7 @@ from daystrom.components.tool_util import tool
 from daystrom.exceptions import ToolCallError
 
 
-@tool
+@tool(type="default")
 def web_fetch(url: str, format: str = "markdown") -> str:
     """Fetches content from a given URL.
 

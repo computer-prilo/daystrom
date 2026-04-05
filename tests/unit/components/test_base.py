@@ -4,7 +4,7 @@ import pytest
 
 from daystrom import Provider
 from daystrom.components import (
-    DEFAULT_TOOLS,
+    CUSTOM_TOOLS,
     LLM,
     Context,
     LLMResponse,
@@ -26,14 +26,14 @@ def test_tool_decorator_basic():
         """
         return x
 
-    assert "my_test_tool" in DEFAULT_TOOLS
-    t = DEFAULT_TOOLS["my_test_tool"]
+    assert "my_test_tool" in CUSTOM_TOOLS
+    t = CUSTOM_TOOLS["my_test_tool"]
     assert t.name == "my_test_tool"
     assert t.description == "This is the long description."
     assert t.callable is not None
 
     # Cleanup
-    del DEFAULT_TOOLS["my_test_tool"]
+    del CUSTOM_TOOLS["my_test_tool"]
 
 
 def test_tool_decorator_short_description_fallback():
@@ -44,11 +44,11 @@ def test_tool_decorator_short_description_fallback():
         """Only a short description."""
         return "ok"
 
-    t = DEFAULT_TOOLS["short_desc_tool"]
+    t = CUSTOM_TOOLS["short_desc_tool"]
     assert t.description == "Only a short description."
 
     # Cleanup
-    del DEFAULT_TOOLS["short_desc_tool"]
+    del CUSTOM_TOOLS["short_desc_tool"]
 
 
 def test_tool_decorator_extracts_params():
@@ -64,7 +64,7 @@ def test_tool_decorator_extracts_params():
         """
         return f"{required_param}-{optional_param}"
 
-    t = DEFAULT_TOOLS["param_tool"]
+    t = CUSTOM_TOOLS["param_tool"]
 
     assert "required_param" in t.params
     assert t.params["required_param"]["type"] == str
@@ -75,7 +75,7 @@ def test_tool_decorator_extracts_params():
     assert t.params["optional_param"]["required"] is False
 
     # Cleanup
-    del DEFAULT_TOOLS["param_tool"]
+    del CUSTOM_TOOLS["param_tool"]
 
 
 def test_tool_decorator_list_param():
@@ -86,14 +86,14 @@ def test_tool_decorator_list_param():
         """A tool with list param."""
         return ",".join(tags)
 
-    t = DEFAULT_TOOLS["list_tool"]
+    t = CUSTOM_TOOLS["list_tool"]
 
     assert t.params["tags"]["type"] == list[str]
     assert "items" in t.params["tags"]
     assert t.params["tags"]["items"]["type"] == str
 
     # Cleanup
-    del DEFAULT_TOOLS["list_tool"]
+    del CUSTOM_TOOLS["list_tool"]
 
 
 def test_tool_decorator_rejects_args():
@@ -143,7 +143,7 @@ def test_tool_decorator_callable_still_works():
     assert result == "hello-default"
 
     # Cleanup
-    del DEFAULT_TOOLS["working_tool"]
+    del CUSTOM_TOOLS["working_tool"]
 
 
 def test_tool_direct_creation():

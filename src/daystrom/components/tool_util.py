@@ -8,6 +8,7 @@ from docstring_parser import parse
 log = logging.getLogger(__name__)
 
 DEFAULT_TOOLS = {}
+CUSTOM_TOOLS = {}
 
 
 class Tool:
@@ -33,48 +34,62 @@ class Tool:
 
 
 # this is a decorator to be @tool above each tool function
-def tool(func):
-    docstring = parse(func.__doc__ or "")
-    inspect_params = inspect.signature(func).parameters
+def tool(func=None, *, type="custom"):
+    def tool_dec(func):
+        docstring = parse(func.__doc__ or "")
+        inspect_params = inspect.signature(func).parameters
 
-    func_params = {}
+        func_params = {}
 
-    for idx, (name, param) in enumerate(inspect_params.items()):
-        if param.kind == inspect.Parameter.VAR_POSITIONAL:
-            raise TypeError("*args is not supported in tool parameters.")
-        if param.kind == inspect.Parameter.VAR_KEYWORD:
-            raise TypeError("**kwargs is not supported in tool parameters.")
+        for idx, (name, param) in enumerate(inspect_params.items()):
+            if param.kind == inspect.Parameter.VAR_POSITIONAL:
+                raise TypeError("*args is not supported in tool parameters.")
+            if param.kind == inspect.Parameter.VAR_KEYWORD:
+                raise TypeError("**kwargs is not supported in tool parameters.")
 
-        required = False
-        if param.default is inspect.Parameter.empty:
-            required = True
+            required = False
+            if param.default is inspect.Parameter.empty:
+                required = True
 
-        description = ""
-        if len(docstring.params) >= idx + 1:
-            description = docstring.params[idx].description
+            description = ""
+            if len(docstring.params) >= idx + 1:
+                description = docstring.params[idx].description
 
-        func_params[name] = {
-            "type": param.annotation,
-            "description": description,
-            "required": required,
-        }
+            func_params[name] = {
+                "type": param.annotation,
+                "description": description,
+                "required": required,
+            }
 
-        if get_origin(param.annotation) in (list, tuple):
-            if len(param.annotation.__args__) > 1:
-                raise TypeError(
-                    "Only single-type iterables are allowed as parameters to tool calls."
-                )
-            else:
-                func_params[name]["items"] = {"type": param.annotation.__args__[0]}
+            if get_origin(param.annotation) in (list, tuple):
+                if len(param.annotation.__args__) > 1:
+                    raise TypeError(
+                        "Only single-type iterables are allowed as parameters to tool calls."
+                    )
+                else:
+                    func_params[name]["items"] = {"type": param.annotation.__args__[0]}
 
-    tool_desc = docstring.long_description or docstring.short_description or ""
+        tool_desc = docstring.long_description or docstring.short_description or ""
 
-    new_tool = Tool(func, name=func.__name__, description=tool_desc, params=func_params)
+        new_tool = Tool(
+            func, name=func.__name__, description=tool_desc, params=func_params
+        )
 
-    DEFAULT_TOOLS[new_tool.name] = new_tool
+        match type:
+            case "default":
+                DEFAULT_TOOLS[new_tool.name] = new_tool
+            case "custom":
+                CUSTOM_TOOLS[new_tool.name] = new_tool
+            case _:
+                raise ValueError(f"Unsupported tool type: {type}")
 
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        return func(*args, **kwargs)
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            return func(*args, **kwargs)
 
-    return wrapper
+        return wrapper
+
+    if func is None:
+        return tool_dec
+
+    return tool_dec(func)
