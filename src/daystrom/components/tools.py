@@ -2,7 +2,7 @@ import json
 
 from markdownify import markdownify as md
 
-from daystrom.components import tool
+from daystrom.components.tool_util import tool
 from daystrom.exceptions import ToolCallError
 
 

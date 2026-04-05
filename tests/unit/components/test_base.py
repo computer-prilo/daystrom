@@ -3,7 +3,16 @@ import re
 import pytest
 
 from daystrom import Provider
-from daystrom.components import DEFAULT_TOOLS, LLM, Context, LLMResponse, Message, Tool, ToolCall, tool
+from daystrom.components import (
+    DEFAULT_TOOLS,
+    LLM,
+    Context,
+    LLMResponse,
+    Message,
+    Tool,
+    ToolCall,
+    tool,
+)
 
 
 def test_tool_decorator_basic():
@@ -211,7 +220,7 @@ class TestMessage:
             r"""user: Hello
     Tool Call ID: call_123
     Tool Calls:
-    ToolCall\(tool=<daystrom\.components\.base\.Tool object at 0x[0-9a-f]+>, tool_call_id='call_123', args=\[\], kwargs=\{'x': 'val'\}\)"""
+    ToolCall\(tool=<daystrom\.components\.tool_util\.Tool object at 0x[0-9a-f]+>, tool_call_id='call_123', args=\[\], kwargs=\{'x': 'val'\}\)"""
         )
         assert expected_pattern.match(result)
 

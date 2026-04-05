@@ -9,9 +9,9 @@ from .base import (
     Message,
     Tool,
     ToolCall,
-    tool,
 )
 from .instructor import Instructor
+from .tool_util import tool
 
 __all__ = [
     "DEFAULT_TOOLS",
