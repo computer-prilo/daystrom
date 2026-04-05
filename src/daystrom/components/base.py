@@ -168,8 +168,8 @@ class Agent(Component[AgentResponse]):
             self.context = Context()
 
         self.max_loops = max_loops
-        if not tools:
-            tools = DEFAULT_TOOLS
+        if tools is None:
+            tools = DEFAULT_TOOLS.copy()
             tools.update(CUSTOM_TOOLS)
         self.tools = tools
         self.llm.tools = self.tools

@@ -6,14 +6,15 @@ name: Python application
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+  pull_request_review:
+    types: [submitted]
 
 permissions:
   contents: read
 
 jobs:
   test:
+    if: github.event.review.state == 'approved'
 
     runs-on: ubuntu-latest
 
@@ -31,4 +32,4 @@ jobs:
         AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
       run: |
         uv run --all-extras pytest --cov src
-
+    - run: echo "This PR was approved"
