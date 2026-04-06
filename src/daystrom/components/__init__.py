@@ -1,4 +1,5 @@
 from .base import (
+    CUSTOM_TOOLS,
     DEFAULT_TOOLS,
     LLM,
     Agent,
@@ -9,11 +10,12 @@ from .base import (
     Message,
     Tool,
     ToolCall,
-    tool,
 )
 from .instructor import Instructor
+from .tool_util import tool
 
 __all__ = [
+    "CUSTOM_TOOLS",
     "DEFAULT_TOOLS",
     "LLM",
     "Agent",
