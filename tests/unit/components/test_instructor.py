@@ -1,3 +1,5 @@
+from unittest.mock import Mock
+
 import pytest
 from pydantic import BaseModel
 
@@ -39,8 +41,16 @@ def test_init_with_context(message):
 
 
 def test_invoke_returns_response_model(client, message):
+    mocked_response = client.response_model(city_name="Seattle", state="Washington")
+    client.client.create = Mock(return_value=mocked_response)
+
     result = client.invoke(message)
 
+    client.client.create.assert_called_once_with(
+        response_model=client.response_model,
+        messages=[{"role": "user", "content": message}],
+        max_retries=3,
+    )
     assert isinstance(result, client.response_model)
     assert isinstance(result.city_name, str)
     assert isinstance(result.state, str)
