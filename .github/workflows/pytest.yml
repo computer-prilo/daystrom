@@ -33,4 +33,4 @@ jobs:
       run: |
         uv run --all-extras pytest --cov src
     - name: Finish
-      run: echo "This PR was approved"
+      run: echo "Tests passed"
