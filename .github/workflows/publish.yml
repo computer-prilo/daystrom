@@ -32,8 +32,14 @@ jobs:
         run: uv build
       # Check that basic features work and we didn't miss to include crucial files
       - name: Smoke test (wheel)
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
         run: uv run --isolated --no-project --with dist/*.whl --with pytest --with pytest-asyncio --with pytest-mock --with python-telegram-bot pytest tests/unit/
       - name: Smoke test (source distribution)
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
         run: uv run --isolated --no-project --with dist/*.tar.gz --with pytest --with pytest-asyncio --with pytest-mock --with python-telegram-bot pytest tests/unit/
       - name: Publish
         run: uv publish
