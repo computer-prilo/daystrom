@@ -32,4 +32,5 @@ jobs:
         AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
       run: |
         uv run --all-extras pytest --cov src
-    - run: echo "This PR was approved"
+    - name: Finish
+      run: echo "This PR was approved"
