@@ -224,14 +224,15 @@ class TestWebFetch:
         # json should have highest priority
         assert "application/json;q=1.0" in accept
 
-    def test_redirect_raises_tool_call_error(self, mocker):
-        """Test that redirect responses raise ToolCallError with redirect URL."""
-        response = MagicMock(spec=httpx.Response)
-        response.is_redirect = True
-        response.headers = {"location": "https://example.com/redirected"}
-        mocker.patch("httpx.get", return_value=response)
+    def test_redirects_are_followed(self, mocker, mock_response):
+        """Test that redirect responses are followed automatically."""
+        response = mock_response(
+            text="Redirect destination content",
+            content_type="text/plain",
+        )
+        mock_get = mocker.patch("httpx.get", return_value=response)
 
-        with pytest.raises(ToolCallError) as exc_info:
-            web_fetch("https://example.com")
+        result = web_fetch("https://example.com")
 
-        assert "https://example.com/redirected" in str(exc_info.value)
+        assert result == "Redirect destination content"
+        assert mock_get.call_args.kwargs["follow_redirects"] is True

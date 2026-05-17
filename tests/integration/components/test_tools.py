@@ -69,11 +69,8 @@ class TestWebFetchIntegration:
         with pytest.raises(httpx.HTTPStatusError):
             web_fetch("https://httpbin.org/status/500")
 
-    def test_redirect_raises_tool_call_error(self):
-        """Test that redirect responses raise ToolCallError with redirect URL."""
-        from daystrom.exceptions import ToolCallError
+    def test_redirects_are_followed(self):
+        """Test that redirect responses are followed automatically."""
+        result = web_fetch("https://httpbin.org/redirect-to?url=/html", format="text")
 
-        with pytest.raises(ToolCallError) as exc_info:
-            web_fetch("https://httpbin.org/redirect-to?url=https://example.com")
-
-        assert "https://example.com" in str(exc_info.value)
+        assert "Herman Melville" in result
