@@ -7,6 +7,16 @@ from daystrom import Provider
 from daystrom.components import Context, Instructor, Tool, ToolCall
 
 
+@pytest.fixture(autouse=True)
+def mock_instructor_provider(monkeypatch):
+    mocked_client = Mock()
+    monkeypatch.setattr(
+        "daystrom.components.instructor.instructor.from_provider",
+        Mock(return_value=mocked_client),
+    )
+    return mocked_client
+
+
 @pytest.fixture
 def client():
     class CityState(BaseModel):
