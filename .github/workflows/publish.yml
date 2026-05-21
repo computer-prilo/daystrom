@@ -35,11 +35,11 @@ jobs:
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
-        run: uv run --isolated --no-project --with dist/*.whl --with pytest --with pytest-asyncio --with pytest-mock --with python-telegram-bot pytest tests/unit/
+        run: uv run --isolated --no-project --with dist/*.whl --with pytest --with pytest-asyncio --with pytest-mock --with python-telegram-bot pytest tests/
       - name: Smoke test (source distribution)
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
-        run: uv run --isolated --no-project --with dist/*.tar.gz --with pytest --with pytest-asyncio --with pytest-mock --with python-telegram-bot pytest tests/unit/
+        run: uv run --isolated --no-project --with dist/*.tar.gz --with pytest --with pytest-asyncio --with pytest-mock --with python-telegram-bot pytest tests/
       - name: Publish
         run: uv publish
